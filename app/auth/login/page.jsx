@@ -1,7 +1,7 @@
 // app/auth/login/page.jsx
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -21,6 +21,10 @@ const inputStyle = {
 };
 
 export default function LoginPage() {
+  return (<Suspense fallback={<div style={{ minHeight: '100vh', background: '#f5f5f7' }} />}><LoginContent /></Suspense>);
+}
+
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirect') || '/';

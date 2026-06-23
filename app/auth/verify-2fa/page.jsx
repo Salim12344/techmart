@@ -1,7 +1,7 @@
 // app/auth/verify-2fa/page.jsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
@@ -14,6 +14,10 @@ const C = {
 };
 
 export default function Verify2faPage() {
+  return (<Suspense fallback={<div style={{ minHeight: '100vh', background: '#f5f5f7' }} />}><Verify2faContent /></Suspense>);
+}
+
+function Verify2faContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showToast } = useToast();

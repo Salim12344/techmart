@@ -1,7 +1,7 @@
 // app/auth/verify-otp/page.jsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/app/components/Toast';
@@ -13,6 +13,10 @@ const C = {
 };
 
 export default function VerifyOtpPage() {
+  return (<Suspense fallback={<div style={{ minHeight: '100vh', background: '#f5f5f7' }} />}><VerifyOtpContent /></Suspense>);
+}
+
+function VerifyOtpContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showToast } = useToast();

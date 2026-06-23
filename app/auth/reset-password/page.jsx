@@ -1,7 +1,7 @@
 // app/auth/reset-password/page.jsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/app/components/Toast';
@@ -25,6 +25,10 @@ const focusHandlers = {
 };
 
 export default function ResetPasswordPage() {
+  return (<Suspense fallback={<div style={{ minHeight: '100vh', background: '#f5f5f7' }} />}><ResetPasswordContent /></Suspense>);
+}
+
+function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showToast } = useToast();
