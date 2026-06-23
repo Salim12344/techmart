@@ -105,6 +105,14 @@ async function toggleWishlist(productId, toast) {
 }
 
 export default function ProductsPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><p style={{ color: '#86868b' }}>Loading products...</p></div>}>
+      <ProductsContent />
+    </Suspense>
+  );
+}
+
+function ProductsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { showToast } = useToast();
