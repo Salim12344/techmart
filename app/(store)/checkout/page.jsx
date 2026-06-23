@@ -703,6 +703,11 @@ export default function CheckoutPage() {
             flex-direction: column !important;
           }
         }
+        @media (max-width: 768px) {
+          .checkout-summary > div {
+            position: static !important;
+          }
+        }
       `}</style>
     </div>
   );

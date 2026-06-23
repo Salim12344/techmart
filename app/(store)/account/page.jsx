@@ -143,8 +143,8 @@ export default function AccountPage() {
         background: C.card, borderRadius: 20, border: `1px solid ${C.border}`,
         padding: '2rem', marginBottom: '1.5rem',
       }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: editingProfile ? '1.5rem' : 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+        <div className="account-profile-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: editingProfile ? '1.5rem' : 0 }}>
+          <div className="account-profile-info" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
             <div style={{
               width: 64, height: 64, borderRadius: '50%', background: C.blue,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -335,7 +335,7 @@ export default function AccountPage() {
       </div>
 
       {/* Quick Links */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+      <div className="account-quick-links" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
         {[
           { href: '/orders', icon: <Package size={20} />, color: C.orange, bg: 'rgba(255,159,10,0.1)', title: 'My Orders', sub: 'View order history' },
           { href: '/wishlist', icon: <Heart size={20} />, color: C.red, bg: C.redBg, title: 'Wishlist', sub: 'Items you\'ve saved' },
@@ -387,6 +387,23 @@ export default function AccountPage() {
           <LogOut size={16} /> Sign Out
         </button>
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .account-quick-links {
+            grid-template-columns: 1fr !important;
+          }
+          .account-profile-header {
+            flex-direction: column !important;
+            gap: 1rem !important;
+          }
+          .account-profile-info {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            text-align: left !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

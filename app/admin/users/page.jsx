@@ -105,7 +105,7 @@ export default function AdminUsersPage() {
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem', alignItems: 'start' }}>
+      <div className="admin-users-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem', alignItems: 'start' }}>
         {/* Users list */}
         <div style={{
           background: '#ffffff',
@@ -198,7 +198,7 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Detail panel */}
-        <div style={{ position: 'sticky', top: '1.5rem' }}>
+        <div className="admin-users-detail" style={{ position: 'sticky', top: '1.5rem' }}>
           {selectedUser ? (
             <div style={{
               background: '#ffffff',
@@ -293,6 +293,17 @@ export default function AdminUsersPage() {
           )}
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .admin-users-layout {
+            grid-template-columns: 1fr !important;
+          }
+          .admin-users-detail {
+            position: static !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

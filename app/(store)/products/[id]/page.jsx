@@ -1270,6 +1270,9 @@ export default function ProductDetailPage({ params }) {
             grid-template-columns: 1fr !important;
             gap: 2rem !important;
           }
+          .product-detail-grid > div:first-child {
+            position: static !important;
+          }
         }
       `}</style>
     </div>

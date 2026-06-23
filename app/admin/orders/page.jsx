@@ -131,7 +131,7 @@ export default function AdminOrdersPage() {
       </div>
 
       {/* Main layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '1.5rem', alignItems: 'start' }}>
+      <div className="admin-orders-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '1.5rem', alignItems: 'start' }}>
         {/* Orders list */}
         <div style={{ background: C.card, borderRadius: '18px', border: `1px solid ${C.border}`, overflow: 'hidden' }}>
           {/* Table header */}
@@ -176,7 +176,7 @@ export default function AdminOrdersPage() {
         </div>
 
         {/* Detail panel */}
-        <div style={{ position: 'sticky', top: '1.5rem' }}>
+        <div className="admin-orders-detail" style={{ position: 'sticky', top: '1.5rem' }}>
           {selectedOrder ? (
             <div style={{ background: C.card, borderRadius: '18px', border: `1px solid ${C.border}`, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               {/* Order number + status */}
@@ -289,6 +289,17 @@ export default function AdminOrdersPage() {
           )}
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .admin-orders-layout {
+            grid-template-columns: 1fr !important;
+          }
+          .admin-orders-detail {
+            position: static !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

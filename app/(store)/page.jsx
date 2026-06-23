@@ -281,6 +281,7 @@ export default function HomePage() {
             </div>
           ) : (
             <div
+              className="featured-grid"
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))',
@@ -512,6 +513,7 @@ export default function HomePage() {
               </p>
             </div>
             <div
+              className="categories-grid"
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
@@ -798,10 +800,22 @@ export default function HomePage() {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
         }
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
+          .featured-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.75rem !important;
+          }
+          .categories-grid {
+            grid-template-columns: 1fr !important;
+          }
           .footer-columns {
             grid-template-columns: 1fr !important;
             gap: 1.5rem !important;
+          }
+        }
+        @media (max-width: 420px) {
+          .featured-grid {
+            grid-template-columns: 1fr !important;
           }
         }
       `}</style>

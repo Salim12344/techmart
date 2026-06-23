@@ -194,7 +194,7 @@ export default function WishlistPage() {
 
       {/* Product grid */}
       {wishlist.length > 0 && (
-        <div style={{
+        <div className="wishlist-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
           gap: '1.5rem',
@@ -371,6 +371,20 @@ export default function WishlistPage() {
           })}
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 768px) {
+          .wishlist-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.75rem !important;
+          }
+        }
+        @media (max-width: 420px) {
+          .wishlist-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

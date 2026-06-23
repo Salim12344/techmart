@@ -89,7 +89,7 @@ export default function OrdersPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg }}>
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1.5rem 4rem' }}>
+      <div className="orders-container" style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1.5rem 4rem' }}>
         {/* Header */}
         <div style={{ marginBottom: '2rem' }}>
           <h1 style={{
@@ -244,6 +244,14 @@ export default function OrdersPage() {
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
+        }
+        @media (max-width: 768px) {
+          .orders-container {
+            padding: 1.5rem 1rem 3rem !important;
+          }
+          .orders-container h1 {
+            font-size: 1.5rem !important;
+          }
         }
       `}</style>
     </div>

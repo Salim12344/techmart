@@ -242,7 +242,7 @@ export default function OrderDetailPage({ params }) {
           </div>
 
           {/* Table header */}
-          <div style={{
+          <div className="order-items-header" style={{
             display: 'grid',
             gridTemplateColumns: '1fr 80px 60px 90px 90px',
             padding: '0.5rem 0', borderBottom: `1px solid ${C.border}`,
@@ -261,7 +261,7 @@ export default function OrderDetailPage({ params }) {
 
           {/* Table rows */}
           {order.items?.map((item, i) => (
-            <div key={i} style={{
+            <div key={i} className="order-items-row" style={{
               display: 'grid',
               gridTemplateColumns: '1fr 80px 60px 90px 90px',
               padding: '0.75rem 0',
@@ -296,7 +296,7 @@ export default function OrderDetailPage({ params }) {
         </div>
 
         {/* Shipping Address & Order Summary side by side */}
-        <div style={{
+        <div className="order-detail-grid" style={{
           display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem',
           marginBottom: '1rem',
         }}>
@@ -412,10 +412,18 @@ export default function OrderDetailPage({ params }) {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
         }
-        @media (max-width: 640px) {
-          div[style*="gridTemplateColumns: '1fr 1fr'"],
-          div[style*="grid-template-columns"] {
+        @media (max-width: 768px) {
+          .order-detail-grid {
             grid-template-columns: 1fr !important;
+          }
+          .order-items-header,
+          .order-items-row {
+            grid-template-columns: 1fr 60px 40px 80px !important;
+          }
+          .order-items-header span:nth-child(5),
+          .order-items-row span:nth-child(5),
+          .order-items-row > *:nth-child(5) {
+            display: none !important;
           }
         }
       `}</style>
