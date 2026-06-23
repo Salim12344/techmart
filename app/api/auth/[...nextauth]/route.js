@@ -43,8 +43,35 @@ export const authOptions = {
   ],
 
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
+    async signIn({ user, account }) {
+      if (account?.provider === 'google') {
+        try {
+          await connectDB();
+          const existingUser = await User.findOne({ email: user.email.toLowerCase() });
+          if (!existingUser) {
+            await User.create({
+              name: user.name,
+              email: user.email.toLowerCase(),
+              role: 'user',
+              emailVerified: true,
+            });
+          }
+        } catch (err) {
+          console.error('Google sign-in error:', err);
+          return false;
+        }
+      }
+      return true;
+    },
+    async jwt({ token, user, account }) {
+      if (account?.provider === 'google') {
+        await connectDB();
+        const dbUser = await User.findOne({ email: token.email.toLowerCase() });
+        if (dbUser) {
+          token.id = dbUser._id.toString();
+          token.role = dbUser.role;
+        }
+      } else if (user) {
         token.id = user.id;
         token.role = user.role;
       }
