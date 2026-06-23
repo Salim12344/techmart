@@ -64,17 +64,22 @@ export const authOptions = {
       return true;
     },
     async jwt({ token, user, account }) {
-      if (account?.provider === 'google') {
-        await connectDB();
-        const dbUser = await User.findOne({ email: token.email.toLowerCase() });
-        if (dbUser) {
-          token.id = dbUser._id.toString();
-          token.role = dbUser.role;
-        }
-      } else if (user) {
+      if (user && !account) {
         token.id = user.id;
         token.role = user.role;
       }
+
+      if (account?.provider === 'google' || (token.id && !/^[a-f\d]{24}$/i.test(token.id))) {
+        try {
+          await connectDB();
+          const dbUser = await User.findOne({ email: token.email.toLowerCase() });
+          if (dbUser) {
+            token.id = dbUser._id.toString();
+            token.role = dbUser.role;
+          }
+        } catch {}
+      }
+
       return token;
     },
     async session({ session, token }) {
