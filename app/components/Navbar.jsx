@@ -118,7 +118,7 @@ export default function Navbar() {
 
   function handleSignOut() {
     if (confirm('Are you sure you want to sign out?')) {
-      signOut({ callbackUrl: '/auth/login' });
+      signOut({ callbackUrl: '/' });
     }
   }
 

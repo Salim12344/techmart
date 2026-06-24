@@ -179,7 +179,7 @@ function AdminSidebar() {
           <button
             onClick={() => {
               if (confirm('Are you sure you want to sign out?')) {
-                signOut({ callbackUrl: '/auth/login' });
+                signOut({ callbackUrl: '/' });
               }
             }}
             style={{ display: 'block', width: '100%', marginTop: '0.75rem', padding: '0.5rem 0.75rem', background: '#f5f5f7', borderRadius: '8px', fontSize: '0.8125rem', color: '#ff453a', textAlign: 'center', fontWeight: 500, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}

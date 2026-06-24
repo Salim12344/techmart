@@ -730,8 +730,8 @@ export default function HomePage() {
               </h4>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
                 {[
-                  { href: '#', label: 'Contact' },
-                  { href: '#', label: 'FAQ' },
+                  { href: '/support', label: 'Contact' },
+                  { href: '/faq', label: 'FAQ' },
                 ].map((item) => (
                   <li key={item.label}>
                     <Link

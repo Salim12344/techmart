@@ -115,6 +115,20 @@ function ProductsContent() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [compareIds, setCompareIds] = useState([]);
   const [wishlistedIds, setWishlistedIds] = useState(new Set());
+  const [cartProductIds, setCartProductIds] = useState(new Set());
+
+  useEffect(() => {
+    function syncCart() {
+      try {
+        const cart = JSON.parse(localStorage.getItem('techmart-cart') || '[]');
+        setCartProductIds(new Set(cart.map(item => item.productId)));
+      } catch { setCartProductIds(new Set()); }
+    }
+    syncCart();
+    window.addEventListener('cart-updated', syncCart);
+    window.addEventListener('storage', syncCart);
+    return () => { window.removeEventListener('cart-updated', syncCart); window.removeEventListener('storage', syncCart); };
+  }, []);
 
   useEffect(() => {
     try {
@@ -320,10 +334,13 @@ function ProductsContent() {
             position: 'sticky',
             top: 48,
             zIndex: 50,
-            padding: '0.75rem 0',
-            background: 'rgba(245,245,247,0.85)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
+            padding: '0.75rem 1rem',
+            background: 'rgba(245,245,247,0.92)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderRadius: '20px',
+            border: '1px solid rgba(0,0,0,0.06)',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
           }}
         >
           <div style={{ position: 'relative' }}>
@@ -993,14 +1010,24 @@ function ProductsContent() {
                       </span>
                     </div>
 
-                    {/* Add to Cart - Appears on Hover */}
+                    {/* Add/Remove Cart - Appears on Hover */}
                     <button
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        addToCart(product, showToast);
+                        if (cartProductIds.has(product._id)) {
+                          try {
+                            const cart = JSON.parse(localStorage.getItem('techmart-cart') || '[]');
+                            const updated = cart.filter(item => item.productId !== product._id);
+                            localStorage.setItem('techmart-cart', JSON.stringify(updated));
+                            window.dispatchEvent(new Event('cart-updated'));
+                            showToast('Removed from cart', 'success');
+                          } catch { showToast('Something went wrong'); }
+                        } else {
+                          addToCart(product, showToast);
+                        }
                       }}
-                      disabled={totalStock === 0}
+                      disabled={totalStock === 0 && !cartProductIds.has(product._id)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -1010,21 +1037,21 @@ function ProductsContent() {
                         padding: '0.625rem',
                         marginTop: '0.875rem',
                         borderRadius: '980px',
-                        border: 'none',
-                        background: totalStock === 0 ? '#e8e8ed' : C.blue,
-                        color: totalStock === 0 ? C.muted : '#ffffff',
+                        border: cartProductIds.has(product._id) ? `1px solid ${C.red}` : 'none',
+                        background: totalStock === 0 && !cartProductIds.has(product._id) ? '#e8e8ed' : cartProductIds.has(product._id) ? C.redBg : C.blue,
+                        color: totalStock === 0 && !cartProductIds.has(product._id) ? C.muted : cartProductIds.has(product._id) ? C.red : '#ffffff',
                         fontSize: '0.8125rem',
                         fontWeight: 600,
-                        cursor: totalStock === 0 ? 'not-allowed' : 'pointer',
+                        cursor: totalStock === 0 && !cartProductIds.has(product._id) ? 'not-allowed' : 'pointer',
                         fontFamily: 'inherit',
                         transition: 'all 0.35s cubic-bezier(0.25, 0.1, 0.25, 1)',
-                        opacity: isHovered ? 1 : 0,
-                        transform: isHovered ? 'translateY(0)' : 'translateY(6px)',
-                        pointerEvents: isHovered ? 'auto' : 'none',
+                        opacity: isHovered || cartProductIds.has(product._id) ? 1 : 0,
+                        transform: isHovered || cartProductIds.has(product._id) ? 'translateY(0)' : 'translateY(6px)',
+                        pointerEvents: isHovered || cartProductIds.has(product._id) ? 'auto' : 'none',
                       }}
                     >
                       <ShoppingBag size={14} />
-                      Add to Cart
+                      {cartProductIds.has(product._id) ? 'Remove from Cart' : 'Add to Cart'}
                     </button>
                   </div>
                 </div>

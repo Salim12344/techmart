@@ -378,7 +378,7 @@ export default function AccountPage() {
           <h3 style={{ fontSize: '1rem', fontWeight: 600, color: C.text, margin: '0 0 0.125rem' }}>Sign Out</h3>
           <p style={{ fontSize: '0.8125rem', color: C.muted, margin: 0 }}>Sign out of your account</p>
         </div>
-        <button onClick={() => { if (confirm('Are you sure you want to sign out?')) signOut({ callbackUrl: '/auth/login' }); }} style={{
+        <button onClick={() => { if (confirm('Are you sure you want to sign out?')) signOut({ callbackUrl: '/' }); }} style={{
           display: 'flex', alignItems: 'center', gap: '0.5rem',
           background: 'transparent', color: C.red, border: `1px solid ${C.red}`,
           borderRadius: 980, padding: '0.625rem 1.25rem', fontSize: '0.9375rem',
