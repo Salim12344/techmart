@@ -13,7 +13,11 @@ export async function GET(req, { params }) {
     const { id } = await params;
     await connectDB();
 
-    const ticket = await SupportTicket.findOne({ _id: id, userId: session.user.id });
+    const ticket = await SupportTicket.findOneAndUpdate(
+      { _id: id, userId: session.user.id },
+      { userLastReadAt: new Date() },
+      { new: true }
+    );
     if (!ticket) {
       return Response.json({ error: 'Ticket not found' }, { status: 404 });
     }

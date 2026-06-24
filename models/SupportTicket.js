@@ -12,6 +12,7 @@ const SupportTicketSchema = new mongoose.Schema({
   status: { type: String, enum: ['open', 'in-progress', 'resolved', 'closed'], default: 'open' },
   priority: { type: String, enum: ['low', 'medium', 'high'], default: 'medium' },
   orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'order' },
+  userLastReadAt: { type: Date, default: Date.now },
 }, { timestamps: true });
 
 export default mongoose.models.SupportTicket || mongoose.model('SupportTicket', SupportTicketSchema);

@@ -108,10 +108,11 @@ export default function Navbar() {
         if (res.ok) {
           const data = await res.json();
           const unread = (data.tickets || []).filter(t => {
-            if (t.messages && t.messages.length > 0) {
-              return t.messages[t.messages.length - 1].sender === 'admin' && t.status !== 'closed';
-            }
-            return false;
+            if (t.status === 'closed' || !t.messages || t.messages.length === 0) return false;
+            const lastMsg = t.messages[t.messages.length - 1];
+            if (lastMsg.sender !== 'admin') return false;
+            const readAt = t.userLastReadAt ? new Date(t.userLastReadAt) : new Date(0);
+            return new Date(lastMsg.timestamp) > readAt;
           }).length;
           setSupportUnread(unread);
         }
@@ -119,7 +120,8 @@ export default function Navbar() {
     }
     checkSupport();
     const interval = setInterval(checkSupport, 60000);
-    return () => clearInterval(interval);
+    window.addEventListener('support-read', checkSupport);
+    return () => { clearInterval(interval); window.removeEventListener('support-read', checkSupport); };
   }, [status]);
 
   // Lock body scroll when mobile menu is open

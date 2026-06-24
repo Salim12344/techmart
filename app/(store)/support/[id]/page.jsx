@@ -66,7 +66,10 @@ function SupportTicketContent({ params }) {
       router.push('/auth/login?redirect=/support');
       return;
     }
-    if (authStatus === 'authenticated') fetchTicket();
+    if (authStatus === 'authenticated') {
+      fetchTicket();
+      window.dispatchEvent(new Event('support-read'));
+    }
   }, [authStatus]);
 
   // Poll every 30s

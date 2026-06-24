@@ -209,11 +209,16 @@ export default function OrdersPage() {
                       {getItemsSummary(order.items)}
                     </p>
                     <div style={{
-                      display: 'flex', alignItems: 'center', gap: '1rem',
+                      display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap',
                     }}>
                       <span style={{ fontSize: '0.8125rem', color: C.muted }}>
-                        {formatDate(order.createdAt)}
+                        Ordered {formatDate(order.createdAt)}
                       </span>
+                      {order.deliveredAt && (
+                        <span style={{ fontSize: '0.8125rem', color: C.green, fontWeight: 500 }}>
+                          Delivered {formatDate(order.deliveredAt)}
+                        </span>
+                      )}
                       <span style={{
                         fontSize: '0.9375rem', fontWeight: 600, color: C.text,
                       }}>
