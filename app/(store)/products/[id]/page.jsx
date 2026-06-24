@@ -4,10 +4,11 @@ import { useState, useEffect, useMemo, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { useToast } from '@/app/components/Toast';
 import {
   Star, Heart, ShoppingBag, Plus, Minus,
-  ChevronRight, Shield, Truck, Package,
+  ChevronRight, Shield, Truck, Package, Send,
 } from 'lucide-react';
 
 const C = {
@@ -216,6 +217,15 @@ export default function ProductDetailPage({ params }) {
   const [hoveredAddCart, setHoveredAddCart] = useState(false);
   const [hoveredWishlist, setHoveredWishlist] = useState(false);
 
+  // Review form state
+  const { data: session, status: authStatus } = useSession();
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [deliveredOrders, setDeliveredOrders] = useState([]);
+  const [ordersLoaded, setOrdersLoaded] = useState(false);
+  const [hoveredSubmit, setHoveredSubmit] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     async function fetchData() {
@@ -272,6 +282,83 @@ export default function ProductDetailPage({ params }) {
   useEffect(() => {
     setQuantity(1);
   }, [selectedColor, selectedStorage]);
+
+  // Fetch user's delivered orders to check purchase eligibility for review
+  useEffect(() => {
+    if (authStatus !== 'authenticated') return;
+    async function fetchOrders() {
+      try {
+        const res = await fetch('/api/orders');
+        if (res.ok) {
+          const data = await res.json();
+          const delivered = (data.orders || []).filter(
+            (o) => o.status === 'delivered' && o.items.some((item) => {
+              const pid = item.productId?._id || item.productId;
+              return pid === id;
+            })
+          );
+          setDeliveredOrders(delivered);
+        }
+      } catch {}
+      setOrdersLoaded(true);
+    }
+    fetchOrders();
+  }, [authStatus, id]);
+
+  // Determine if user already reviewed this product
+  const userAlreadyReviewed = useMemo(() => {
+    if (!session?.user) return false;
+    return reviews.some((r) => {
+      const reviewerId = r.userId?._id || r.userId;
+      return reviewerId === session.user.id;
+    });
+  }, [reviews, session]);
+
+  // Find a delivered order containing this product that hasn't been used for a review yet
+  const eligibleOrder = useMemo(() => {
+    if (userAlreadyReviewed || deliveredOrders.length === 0) return null;
+    return deliveredOrders[0];
+  }, [deliveredOrders, userAlreadyReviewed]);
+
+  async function handleSubmitReview() {
+    if (reviewRating === 0) {
+      showToast('Please select a rating', 'error');
+      return;
+    }
+    if (!eligibleOrder) return;
+    setReviewSubmitting(true);
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: id,
+          rating: reviewRating,
+          comment: reviewComment,
+          orderId: eligibleOrder._id,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        showToast(data.error || 'Failed to submit review', 'error');
+        return;
+      }
+      const data = await res.json();
+      // Add the new review to the list with user info
+      const newReview = {
+        ...data.review,
+        userId: { _id: session.user.id, name: session.user.name || 'You' },
+      };
+      setReviews((prev) => [newReview, ...prev]);
+      setReviewRating(0);
+      setReviewComment('');
+      showToast('Review submitted successfully!', 'success');
+    } catch {
+      showToast('Failed to submit review', 'error');
+    } finally {
+      setReviewSubmitting(false);
+    }
+  }
 
   const stockStatus = useMemo(() => {
     if (!selectedVariant) return { label: 'Unavailable', color: C.muted, bg: '#f0f0f0', dot: C.muted };
@@ -1243,6 +1330,142 @@ export default function ProductDetailPage({ params }) {
                   )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Write a Review Section */}
+          {authStatus === 'authenticated' && ordersLoaded && (
+            <div
+              style={{
+                marginTop: '2rem',
+                background: C.card,
+                borderRadius: '20px',
+                padding: '2rem',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: '1.25rem',
+                  fontWeight: 700,
+                  color: C.text,
+                  margin: '0 0 1.25rem',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                Write a Review
+              </h3>
+
+              {userAlreadyReviewed ? (
+                <p
+                  style={{
+                    fontSize: '0.9375rem',
+                    color: C.muted,
+                    margin: 0,
+                    fontWeight: 500,
+                  }}
+                >
+                  You've already reviewed this product
+                </p>
+              ) : !eligibleOrder ? (
+                <p
+                  style={{
+                    fontSize: '0.9375rem',
+                    color: C.muted,
+                    margin: 0,
+                    fontWeight: 500,
+                  }}
+                >
+                  Purchase and receive this product to leave a review
+                </p>
+              ) : (
+                <div>
+                  {/* Star Rating Selector */}
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        color: C.text,
+                        marginBottom: '0.5rem',
+                      }}
+                    >
+                      Rating
+                    </label>
+                    <StarRating
+                      rating={reviewRating}
+                      size={28}
+                      interactive
+                      onChange={setReviewRating}
+                    />
+                  </div>
+
+                  {/* Comment Textarea */}
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        color: C.text,
+                        marginBottom: '0.5rem',
+                      }}
+                    >
+                      Comment
+                    </label>
+                    <textarea
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      placeholder="Share your experience with this product..."
+                      rows={4}
+                      style={{
+                        width: '100%',
+                        padding: '0.875rem 1rem',
+                        borderRadius: '12px',
+                        border: `1px solid ${C.inputBorder}`,
+                        fontSize: '0.9375rem',
+                        fontFamily: 'inherit',
+                        color: C.text,
+                        background: '#fafafa',
+                        resize: 'vertical',
+                        outline: 'none',
+                        transition: 'border-color 0.2s',
+                        boxSizing: 'border-box',
+                      }}
+                      onFocus={(e) => (e.target.style.borderColor = C.blue)}
+                      onBlur={(e) => (e.target.style.borderColor = C.inputBorder)}
+                    />
+                  </div>
+
+                  {/* Submit Button */}
+                  <button
+                    onClick={handleSubmitReview}
+                    onMouseEnter={() => setHoveredSubmit(true)}
+                    onMouseLeave={() => setHoveredSubmit(false)}
+                    disabled={reviewSubmitting || reviewRating === 0}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.75rem 1.75rem',
+                      borderRadius: '980px',
+                      border: 'none',
+                      fontSize: '0.9375rem',
+                      fontWeight: 600,
+                      fontFamily: 'inherit',
+                      cursor: reviewSubmitting || reviewRating === 0 ? 'not-allowed' : 'pointer',
+                      background: reviewSubmitting || reviewRating === 0 ? '#e8e8ed' : hoveredSubmit ? '#0077ed' : C.blue,
+                      color: reviewSubmitting || reviewRating === 0 ? C.muted : '#ffffff',
+                      transition: 'all 0.25s ease',
+                      transform: hoveredSubmit && !reviewSubmitting && reviewRating > 0 ? 'scale(1.02)' : 'scale(1)',
+                    }}
+                  >
+                    <Send size={16} />
+                    {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </section>

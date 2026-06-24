@@ -41,6 +41,7 @@ export default function Navbar() {
   const [hoveredIcon, setHoveredIcon] = useState(null);
   const [hoveredLink, setHoveredLink] = useState(null);
   const [hoveredDropItem, setHoveredDropItem] = useState(null);
+  const [supportUnread, setSupportUnread] = useState(0);
   const dropdownRef = useRef(null);
 
   // Read cart count from localStorage
@@ -97,6 +98,29 @@ export default function Navbar() {
     setMobileOpen(false);
     setUserDropdownOpen(false);
   }, [pathname]);
+
+  // Check for unread support messages
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    async function checkSupport() {
+      try {
+        const res = await fetch('/api/support');
+        if (res.ok) {
+          const data = await res.json();
+          const unread = (data.tickets || []).filter(t => {
+            if (t.messages && t.messages.length > 0) {
+              return t.messages[t.messages.length - 1].sender === 'admin' && t.status !== 'closed';
+            }
+            return false;
+          }).length;
+          setSupportUnread(unread);
+        }
+      } catch {}
+    }
+    checkSupport();
+    const interval = setInterval(checkSupport, 60000);
+    return () => clearInterval(interval);
+  }, [status]);
 
   // Lock body scroll when mobile menu is open
   useEffect(() => {
@@ -198,7 +222,31 @@ export default function Navbar() {
                     alignItems: 'center',
                   }}
                 >
-                  {link.label}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {link.label}
+                    {link.label === 'Support' && supportUnread > 0 && (
+                      <span
+                        style={{
+                          minWidth: '15px',
+                          height: '15px',
+                          borderRadius: '8px',
+                          background: C.red,
+                          color: '#ffffff',
+                          fontSize: '0.5625rem',
+                          fontWeight: 700,
+                          fontFamily: FONT_FAMILY,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '0 3px',
+                          lineHeight: 1,
+                          boxShadow: '0 1px 4px rgba(255,69,58,0.4)',
+                        }}
+                      >
+                        {supportUnread > 99 ? '99+' : supportUnread}
+                      </span>
+                    )}
+                  </span>
                   {/* Animated underline */}
                   <span
                     style={{
@@ -675,7 +723,31 @@ export default function Navbar() {
                   animation: `navMobileLinkIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 0.05}s both`,
                 }}
               >
-                {link.label}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                  {link.label}
+                  {link.label === 'Support' && supportUnread > 0 && (
+                    <span
+                      style={{
+                        minWidth: '20px',
+                        height: '20px',
+                        borderRadius: '10px',
+                        background: C.red,
+                        color: '#ffffff',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        fontFamily: FONT_FAMILY,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0 5px',
+                        lineHeight: 1,
+                        boxShadow: '0 1px 4px rgba(255,69,58,0.4)',
+                      }}
+                    >
+                      {supportUnread > 99 ? '99+' : supportUnread}
+                    </span>
+                  )}
+                </span>
               </Link>
             ))}
 

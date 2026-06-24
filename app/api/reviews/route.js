@@ -2,6 +2,7 @@
 import { connectDB } from '@/lib/db';
 import Review from '@/models/Review';
 import Order from '@/models/order';
+import Product from '@/models/product';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
@@ -33,11 +34,19 @@ export async function POST(req) {
     const review = new Review({
       productId,
       userId: session.user.id,
+      orderId,
       rating,
       comment,
     });
 
     await review.save();
+
+    // Recalculate average rating and review count for the product
+    const allReviews = await Review.find({ productId });
+    const reviewCount = allReviews.length;
+    const averageRating = allReviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount;
+    await Product.findByIdAndUpdate(productId, { averageRating: Math.round(averageRating * 10) / 10, reviewCount });
+
     return Response.json({ review }, { status: 201 });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 400 });
