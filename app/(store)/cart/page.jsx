@@ -134,7 +134,7 @@ export default function CartPage() {
 
   return (
     <div style={{ background: C.bg, minHeight: '100vh' }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '2.5rem 1.5rem 5rem' }}>
+      <div className="cart-page-wrap" style={{ maxWidth: 1200, margin: '0 auto', padding: '2.5rem 1.5rem 5rem' }}>
         {/* Page Header */}
         <div style={{ marginBottom: '2.5rem' }}>
           <h1 style={{
@@ -159,6 +159,7 @@ export default function CartPage() {
             {cart.map((item, index) => (
               <div
                 key={`${item.productId}-${item.sku}-${index}`}
+                className="cart-item-row"
                 style={{
                   display: 'flex', gap: '1.5rem', padding: '1.5rem',
                   background: C.card, borderRadius: 16,
@@ -191,7 +192,7 @@ export default function CartPage() {
                 {/* Item Details */}
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                   {/* Top Row: Name + Line Total */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+                  <div className="cart-item-details-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
                     <div style={{ minWidth: 0 }}>
                       <h3 style={{
                         fontSize: '1.0625rem', fontWeight: 600, color: C.text,
@@ -464,6 +465,12 @@ export default function CartPage() {
             width: 100% !important;
             position: static !important;
           }
+        }
+        @media (max-width: 768px) {
+          .cart-page-wrap { padding: 1.5rem 1rem 3rem !important; }
+          .cart-page-wrap h1 { font-size: 1.75rem !important; }
+          .cart-item-row { gap: 1rem !important; padding: 1rem !important; }
+          .cart-item-details-top { flex-direction: column !important; gap: 0.25rem !important; }
         }
       `}</style>
     </div>

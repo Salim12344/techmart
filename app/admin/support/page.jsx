@@ -140,7 +140,7 @@ export default function AdminSupportPage() {
   }
 
   return (
-    <div style={{ paddingTop: '2rem' }}>
+    <div className="admin-support-page" style={{ paddingTop: '2rem' }}>
       {/* Back button */}
       <button onClick={() => router.push('/admin')} style={{ background: 'none', border: 'none', color: C.blue, cursor: 'pointer', fontSize: '0.9375rem', fontFamily: 'inherit', padding: 0, display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
         <ArrowLeft size={16} /> Dashboard
@@ -386,6 +386,9 @@ export default function AdminSupportPage() {
           }
           .admin-support-detail {
             position: static !important;
+          }
+          .admin-support-page h1 {
+            font-size: 1.5rem !important;
           }
         }
       `}</style>

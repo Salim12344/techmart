@@ -96,7 +96,7 @@ export default function AdminOrdersPage() {
   }
 
   return (
-    <div style={{ paddingTop: '2rem' }}>
+    <div className="admin-orders-page" style={{ paddingTop: '2rem' }}>
       <button onClick={() => router.push('/admin')} style={{ background: 'none', border: 'none', color: '#0071e3', cursor: 'pointer', fontSize: '0.9375rem', fontFamily: 'inherit', padding: 0, display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
         <ArrowLeft size={16} /> Dashboard
       </button>
@@ -135,9 +135,9 @@ export default function AdminOrdersPage() {
         {/* Orders list */}
         <div style={{ background: C.card, borderRadius: '18px', border: `1px solid ${C.border}`, overflow: 'hidden' }}>
           {/* Table header */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 100px 90px', padding: '0.75rem 1rem', background: C.bg, borderBottom: `1px solid ${C.border}` }}>
+          <div className="admin-orders-list-header" style={{ display: 'grid', gridTemplateColumns: '1fr 140px 100px 90px', padding: '0.75rem 1rem', background: C.bg, borderBottom: `1px solid ${C.border}` }}>
             {['Order', 'Customer', 'Amount', 'Status'].map(h => (
-              <span key={h} style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: C.muted }}>{h}</span>
+              <span key={h} className={h === 'Customer' || h === 'Amount' ? 'admin-orders-hide-mobile' : ''} style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: C.muted }}>{h}</span>
             ))}
           </div>
 
@@ -151,6 +151,7 @@ export default function AdminOrdersPage() {
               const ss = STATUS_STYLES[order.status] || STATUS_STYLES.pending;
               return (
                 <div key={order._id} onClick={() => setSelectedOrder(isSelected ? null : order)}
+                  className="admin-orders-list-row"
                   style={{ display: 'grid', gridTemplateColumns: '1fr 140px 100px 90px', padding: '0.875rem 1rem', borderBottom: `1px solid ${C.bg}`, cursor: 'pointer', background: isSelected ? '#f0f6ff' : C.card, transition: 'background 0.15s' }}
                   onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = C.bg; }}
                   onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = C.card; }}>
@@ -158,10 +159,10 @@ export default function AdminOrdersPage() {
                     <p style={{ fontWeight: 600, fontSize: '0.9375rem', color: C.text, margin: '0 0 0.125rem' }}>{order.orderNumber}</p>
                     <p style={{ fontSize: '0.75rem', color: C.muted, margin: 0 }}>{new Date(order.createdAt).toLocaleDateString()}</p>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <div className="admin-orders-hide-mobile" style={{ display: 'flex', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.875rem', color: C.text }}>{order.shippingAddress?.fullName}</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <div className="admin-orders-hide-mobile" style={{ display: 'flex', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.875rem', fontWeight: 600, color: C.text }}>₦{order.totalAmount?.toLocaleString()}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -303,6 +304,16 @@ export default function AdminOrdersPage() {
           }
           .admin-orders-detail {
             position: static !important;
+          }
+          .admin-orders-page h1 {
+            font-size: 1.5rem !important;
+          }
+          .admin-orders-list-header,
+          .admin-orders-list-row {
+            grid-template-columns: 1fr 90px !important;
+          }
+          .admin-orders-hide-mobile {
+            display: none !important;
           }
         }
       `}</style>

@@ -40,7 +40,7 @@ export default function FAQPage() {
   const toggle = (key) => setOpenIndex(openIndex === key ? null : key);
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: '2.5rem 1.5rem 5rem' }}>
+    <div className="faq-page" style={{ maxWidth: 800, margin: '0 auto', padding: '2.5rem 1.5rem 5rem' }}>
       <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
         <h1 style={{ fontSize: '2.5rem', fontWeight: 700, color: C.text, letterSpacing: '-0.04em', margin: '0 0 0.5rem' }}>
           Frequently Asked Questions
@@ -116,6 +116,10 @@ export default function FAQPage() {
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(-4px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @media (max-width: 768px) {
+          .faq-page { padding: 1.5rem 1rem 3rem !important; }
+          .faq-page h1 { font-size: 1.75rem !important; }
         }
       `}</style>
     </div>

@@ -175,6 +175,7 @@ export default function Navbar() {
         }}
       >
         <div
+          className="navbar-inner"
           style={{
             padding: '0 2.5rem',
             height: '48px',
@@ -274,37 +275,15 @@ export default function Navbar() {
           {/* Spacer */}
           <div style={{ flex: 1 }} />
 
-          {/* Right: Icons (desktop) */}
+          {/* Always-visible icons: Wishlist + Cart (visible on both mobile and desktop) */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.125rem',
             }}
-            className="navbar-desktop-icons"
+            className="navbar-always-icons"
           >
-            {/* Search */}
-            <Link
-              href="/products"
-              onMouseEnter={() => setHoveredIcon('search')}
-              onMouseLeave={() => setHoveredIcon(null)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '34px',
-                height: '34px',
-                borderRadius: '50%',
-                background: hoveredIcon === 'search' ? 'rgba(0, 0, 0, 0.05)' : 'transparent',
-                color: C.text,
-                textDecoration: 'none',
-                transition: 'all 0.25s ease',
-              }}
-              title="Search Products"
-            >
-              <Search size={17} strokeWidth={1.6} />
-            </Link>
-
             {/* Wishlist */}
             <Link
               href="/wishlist"
@@ -373,6 +352,38 @@ export default function Navbar() {
                   {cartCount > 99 ? '99+' : cartCount}
                 </span>
               )}
+            </Link>
+          </div>
+
+          {/* Desktop-only icons: Search + User Dropdown */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.125rem',
+            }}
+            className="navbar-desktop-icons"
+          >
+            {/* Search */}
+            <Link
+              href="/products"
+              onMouseEnter={() => setHoveredIcon('search')}
+              onMouseLeave={() => setHoveredIcon(null)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '34px',
+                height: '34px',
+                borderRadius: '50%',
+                background: hoveredIcon === 'search' ? 'rgba(0, 0, 0, 0.05)' : 'transparent',
+                color: C.text,
+                textDecoration: 'none',
+                transition: 'all 0.25s ease',
+              }}
+              title="Search Products"
+            >
+              <Search size={17} strokeWidth={1.6} />
             </Link>
 
             {/* User Dropdown */}
@@ -1024,8 +1035,10 @@ export default function Navbar() {
           to   { opacity: 1; transform: translateY(0); }
         }
         @media (max-width: 768px) {
+          .navbar-inner { padding: 0 1rem !important; }
           .navbar-desktop-links { display: none !important; }
           .navbar-desktop-icons { display: none !important; }
+          .navbar-always-icons { display: flex !important; }
           .navbar-mobile-toggle { display: flex !important; }
           .navbar-mobile-overlay { display: block !important; }
         }

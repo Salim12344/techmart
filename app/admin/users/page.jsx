@@ -47,7 +47,7 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div style={{ paddingTop: '2rem' }}>
+    <div className="admin-users-page" style={{ paddingTop: '2rem' }}>
       <button onClick={() => router.push('/admin')} style={{ background: 'none', border: 'none', color: '#0071e3', cursor: 'pointer', fontSize: '0.9375rem', fontFamily: 'inherit', padding: 0, display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
         <ArrowLeft size={16} /> Dashboard
       </button>
@@ -114,7 +114,7 @@ export default function AdminUsersPage() {
           overflow: 'hidden',
         }}>
           {/* Table header */}
-          <div style={{
+          <div className="admin-users-list-header" style={{
             display: 'grid',
             gridTemplateColumns: '1fr 100px 80px',
             padding: '0.75rem 1rem',
@@ -122,7 +122,7 @@ export default function AdminUsersPage() {
             background: '#f5f5f7',
           }}>
             {['User', 'Role', 'Orders'].map((h) => (
-              <span key={h} style={{
+              <span key={h} className={h === 'Orders' ? 'admin-users-hide-mobile' : ''} style={{
                 fontSize: '0.6875rem',
                 fontWeight: 600,
                 textTransform: 'uppercase',
@@ -142,6 +142,7 @@ export default function AdminUsersPage() {
             filteredUsers.map((user) => (
               <div
                 key={user._id}
+                className="admin-users-list-row"
                 onClick={() => setSelectedUser(selectedUser?._id === user._id ? null : user)}
                 style={{
                   display: 'grid',
@@ -187,7 +188,7 @@ export default function AdminUsersPage() {
                 </div>
 
                 {/* Orders count */}
-                <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className="admin-users-hide-mobile" style={{ display: 'flex', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.9375rem', color: '#1d1d1f', fontWeight: 500 }}>
                     {user.orders?.length || 0}
                   </span>
@@ -301,6 +302,16 @@ export default function AdminUsersPage() {
           }
           .admin-users-detail {
             position: static !important;
+          }
+          .admin-users-page h1 {
+            font-size: 1.5rem !important;
+          }
+          .admin-users-list-header,
+          .admin-users-list-row {
+            grid-template-columns: 1fr 80px !important;
+          }
+          .admin-users-hide-mobile {
+            display: none !important;
           }
         }
       `}</style>

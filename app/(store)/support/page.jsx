@@ -111,7 +111,7 @@ function SupportContent() {
   }
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1rem' }}>
+    <div className="support-page" style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1rem' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -289,6 +289,10 @@ function SupportContent() {
           to { opacity: 1; transform: translateY(0); }
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 768px) {
+          .support-page { padding: 1.5rem 0.75rem !important; }
+          .support-page h1 { font-size: 1.5rem !important; }
+        }
       `}</style>
     </div>
   );

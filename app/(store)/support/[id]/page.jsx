@@ -130,7 +130,7 @@ function SupportTicketContent({ params }) {
   const ps = PRIORITY_STYLES[ticket.priority] || PRIORITY_STYLES.medium;
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1rem', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 120px)' }}>
+    <div className="support-chat-page" style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1rem', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 120px)' }}>
       {/* Back button */}
       <button
         onClick={() => router.push('/support')}
@@ -253,7 +253,13 @@ function SupportTicketContent({ params }) {
         </div>
       )}
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 768px) {
+          .support-chat-page { padding: 1.5rem 0.75rem !important; }
+          .support-chat-page h1 { font-size: 1.125rem !important; }
+        }
+      `}</style>
     </div>
   );
 }

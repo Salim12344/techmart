@@ -72,7 +72,7 @@ function SuccessContent() {
   }
 
   return (
-    <div style={{
+    <div className="checkout-success" style={{
       minHeight: '80vh', display: 'flex', alignItems: 'center',
       justifyContent: 'center', padding: '2rem 1.5rem', background: C.bg,
     }}>
@@ -190,6 +190,10 @@ function SuccessContent() {
         @keyframes scaleIn {
           from { opacity: 0; transform: scale(0.5); }
           to { opacity: 1; transform: scale(1); }
+        }
+        @media (max-width: 768px) {
+          .checkout-success h1 { font-size: 1.5rem !important; }
+          .checkout-success { padding: 1.5rem 1rem !important; }
         }
       `}</style>
     </div>

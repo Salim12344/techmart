@@ -390,12 +390,25 @@ export default function AdminProductsPage() {
   }
 
   return (
-    <div style={{ paddingTop: '2rem' }}>
+    <div className="admin-products-page" style={{ paddingTop: '2rem' }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .admin-products-page h1 { font-size: 1.5rem !important; }
+          .admin-products-page h2 { font-size: 1.125rem !important; }
+          .admin-products-header { flex-direction: column !important; align-items: flex-start !important; gap: 0.75rem !important; }
+          .admin-products-form-grid { grid-template-columns: 1fr !important; }
+          .admin-products-table-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+          .admin-products-table-wrap table { min-width: 600px; }
+          .admin-categories-grid { grid-template-columns: 1fr !important; }
+          .admin-spec-fields-grid { grid-template-columns: 1fr !important; }
+          .admin-custom-field-grid { grid-template-columns: 1fr 1fr !important; }
+        }
+      `}</style>
       <button onClick={() => router.push('/admin')} style={{ background: 'none', border: 'none', color: '#0071e3', cursor: 'pointer', fontSize: '0.9375rem', fontFamily: 'inherit', padding: 0, display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
         <ArrowLeft size={16} /> Dashboard
       </button>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div className="admin-products-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.03em', color: C.text, margin: 0 }}>
             Products & Categories
@@ -454,7 +467,7 @@ export default function AdminProductsPage() {
                 </div>
 
                 {/* Name + Category */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="admin-products-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>Product Name</label>
                     <input style={inputStyle} type="text" value={form.name} onChange={e => handleNameChange(e.target.value)} required
@@ -487,7 +500,7 @@ export default function AdminProductsPage() {
                 </div>
 
                 {/* Tags + Warranty */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="admin-products-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>Tags (comma-separated)</label>
                     <input style={inputStyle} type="text" placeholder="New, Bestseller" value={form.tags.join(', ')} onChange={e => setForm({ ...form, tags: e.target.value.split(',').map(t => t.trim()) })}
@@ -595,7 +608,7 @@ export default function AdminProductsPage() {
                   <div style={sectionStyle}>
                     <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: C.text, margin: '0 0 0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Specifications — {form.category}</p>
                     <p style={{ fontSize: '0.8125rem', color: C.muted, margin: '0 0 0.75rem' }}>All fields are required.</p>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div className="admin-spec-fields-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                       {specFields.map(field => (
                         <div key={field.key}>
                           <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: C.muted, marginBottom: '0.375rem' }}>
@@ -681,7 +694,7 @@ export default function AdminProductsPage() {
           </div>
 
           {/* Products Table */}
-          <div style={{ background: C.card, borderRadius: '18px', border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+          <div className="admin-products-table-wrap" style={{ background: C.card, borderRadius: '18px', border: `1px solid ${C.border}`, overflow: 'hidden' }}>
             {filteredProducts.length === 0 ? (
               <div style={{ padding: '3rem', textAlign: 'center', color: C.muted }}>
                 {searchQuery || selectedCategory !== 'all' || stockStatus !== 'all' || stockFilterValue ? 'No products match your filters.' : 'No products yet. Add your first product above.'}
@@ -853,7 +866,7 @@ export default function AdminProductsPage() {
                   )}
                   <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: '0.75rem' }}>
                     <p style={{ fontSize: '0.75rem', fontWeight: 600, color: C.muted, margin: '0 0 0.5rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Add Custom Field</p>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 80px 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <div className="admin-custom-field-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 80px 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
                       {[
                         { placeholder: 'Key (e.g. chip)', field: 'key' },
                         { placeholder: 'Label (e.g. Chip)', field: 'label' },
@@ -889,7 +902,7 @@ export default function AdminProductsPage() {
               No categories yet. Create your first category to get started.
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+            <div className="admin-categories-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
               {categories.map(cat => (
                 <div key={cat._id} style={{ background: C.card, borderRadius: '18px', border: `1px solid ${C.border}`, padding: '1.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>

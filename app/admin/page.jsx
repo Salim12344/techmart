@@ -48,7 +48,19 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div style={{ paddingTop: '2rem' }}>
+    <div className="admin-dashboard" style={{ paddingTop: '2rem' }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .admin-dashboard h1 { font-size: 1.5rem !important; }
+          .admin-metrics-grid { grid-template-columns: 1fr !important; }
+          .admin-actions-grid { grid-template-columns: 1fr !important; }
+          .admin-dashboard .admin-recent-order-row {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.5rem !important;
+          }
+        }
+      `}</style>
       {/* Header */}
       <div style={{ marginBottom: '2rem' }}>
         <h1 style={{ fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.03em', color: '#1d1d1f', margin: 0 }}>
@@ -60,7 +72,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Metrics */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+      <div className="admin-metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
         <MetricCard
           label="Total Products"
           value={stats?.totalProducts || 0}
@@ -91,7 +103,7 @@ export default function AdminDashboard() {
         <h2 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#1d1d1f', marginBottom: '1rem', letterSpacing: '-0.015em' }}>
           Quick Actions
         </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
+        <div className="admin-actions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
           <Link href="/admin/products" style={{ textDecoration: 'none' }}>
             <div style={{
               background: '#ffffff',

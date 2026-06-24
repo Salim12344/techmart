@@ -133,7 +133,7 @@ export default function AccountPage() {
   const initial = user?.name?.[0]?.toUpperCase() || 'U';
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: '2rem 1.5rem 4rem' }}>
+    <div className="account-page" style={{ maxWidth: 800, margin: '0 auto', padding: '2rem 1.5rem 4rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem' }}>
         <User size={24} style={{ color: C.blue }} />
         <h1 style={{ fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.03em', color: C.text, margin: 0 }}>
@@ -225,7 +225,7 @@ export default function AccountPage() {
       </div>
 
       {/* Change Password Card */}
-      <div style={{
+      <div className="account-password-card" style={{
         background: C.card, borderRadius: 20, border: `1px solid ${C.border}`,
         padding: '1.5rem 2rem', marginBottom: '1.5rem',
       }}>
@@ -385,7 +385,7 @@ export default function AccountPage() {
       </div>
 
       {/* Sign Out */}
-      <div style={{
+      <div className="account-signout-card" style={{
         background: C.card, borderRadius: 16, border: `1px solid ${C.border}`,
         padding: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
@@ -405,6 +405,8 @@ export default function AccountPage() {
 
       <style>{`
         @media (max-width: 768px) {
+          .account-page { padding: 1.5rem 1rem 3rem !important; }
+          .account-page h1 { font-size: 1.5rem !important; }
           .account-quick-links {
             grid-template-columns: 1fr !important;
           }
@@ -416,6 +418,14 @@ export default function AccountPage() {
             flex-direction: column !important;
             align-items: flex-start !important;
             text-align: left !important;
+          }
+          .account-password-card {
+            padding: 1.25rem 1rem !important;
+          }
+          .account-signout-card {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 1rem !important;
           }
         }
       `}</style>

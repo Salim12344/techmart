@@ -6,12 +6,17 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ToastProvider } from '@/app/components/Toast';
-import { LayoutDashboard, Package, ShoppingCart, Users, ChevronRight, ChevronLeft, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, ChevronRight, ChevronLeft, MessageSquare, Menu, X } from 'lucide-react';
 
-function AdminSidebar() {
+function AdminSidebar({ mobileOpen, setMobileOpen }) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [collapsed, setCollapsed] = useState(false);
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   const navItems = [
     { href: '/admin', label: 'Dashboard', icon: <LayoutDashboard size={18} />, exact: true },
@@ -27,7 +32,23 @@ function AdminSidebar() {
   };
 
   return (
+    <>
+    {/* Mobile overlay backdrop */}
+    {mobileOpen && (
+      <div
+        className="admin-sidebar-backdrop"
+        onClick={() => setMobileOpen(false)}
+        style={{
+          display: 'none',
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.3)',
+          zIndex: 49,
+        }}
+      />
+    )}
     <aside
+      className="admin-sidebar"
       style={{
         width: collapsed ? '64px' : '240px',
         minHeight: '100vh',
@@ -37,7 +58,7 @@ function AdminSidebar() {
         borderRight: '1px solid #e8e8ed',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'width 0.25s ease',
+        transition: 'width 0.25s ease, transform 0.3s ease',
         flexShrink: 0,
         position: 'sticky',
         top: 0,
@@ -189,6 +210,7 @@ function AdminSidebar() {
         </div>
       )}
     </aside>
+    </>
   );
 }
 
@@ -196,6 +218,7 @@ function AdminLayoutInner({ children }) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -205,6 +228,16 @@ function AdminLayoutInner({ children }) {
       router.replace('/');
     }
   }, [status]);
+
+  // Lock body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
 
   if (status === 'loading') {
     return (
@@ -237,16 +270,74 @@ function AdminLayoutInner({ children }) {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#f5f5f7' }}>
-      <AdminSidebar />
-      <main style={{
+    <div className="admin-layout-outer" style={{ display: 'flex', minHeight: '100vh', background: '#f5f5f7' }}>
+      <AdminSidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+      <main className="admin-main" style={{
         flex: 1,
         minWidth: 0,
         padding: '0 2rem 2rem',
         overflowX: 'hidden',
       }}>
+        {/* Mobile top bar with hamburger */}
+        <div className="admin-mobile-topbar" style={{
+          display: 'none',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0.75rem 0',
+          borderBottom: '1px solid #e8e8ed',
+          marginBottom: '0.5rem',
+        }}>
+          <button
+            onClick={() => setMobileOpen(true)}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '36px', height: '36px', borderRadius: '10px',
+              background: '#f5f5f7', border: 'none', cursor: 'pointer', color: '#1d1d1f',
+            }}
+          >
+            <Menu size={20} />
+          </button>
+          <span style={{ fontSize: '1rem', fontWeight: 700, color: '#1d1d1f', letterSpacing: '-0.02em' }}>
+            TechMart Admin
+          </span>
+          <div style={{ width: '36px' }} />
+        </div>
         {children}
       </main>
+      <style>{`
+        @media (max-width: 768px) {
+          .admin-sidebar {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            height: 100vh !important;
+            width: 240px !important;
+            transform: translateX(-100%);
+            z-index: 100 !important;
+          }
+          .admin-sidebar-backdrop {
+            display: block !important;
+          }
+          .admin-layout-outer .admin-sidebar {
+            transform: translateX(-100%);
+          }
+          .admin-mobile-topbar {
+            display: flex !important;
+          }
+          .admin-main {
+            padding: 0 1rem 1rem !important;
+          }
+        }
+      `}</style>
+      {mobileOpen && (
+        <style>{`
+          @media (max-width: 768px) {
+            .admin-layout-outer .admin-sidebar {
+              transform: translateX(0) !important;
+            }
+          }
+        `}</style>
+      )}
     </div>
   );
 }
