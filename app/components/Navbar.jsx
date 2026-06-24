@@ -111,6 +111,7 @@ export default function Navbar() {
   const navLinks = [
     { href: '/products', label: 'Products' },
     { href: '/orders', label: 'Orders' },
+    { href: '/support', label: 'Support' },
   ];
 
   const isActive = (href) => pathname === href;
@@ -149,9 +150,7 @@ export default function Navbar() {
       >
         <div
           style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-            padding: '0 1.5rem',
+            padding: '0 2.5rem',
             height: '48px',
             display: 'flex',
             alignItems: 'center',

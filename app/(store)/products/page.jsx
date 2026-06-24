@@ -86,24 +86,6 @@ function addToCart(product, toast) {
   toast(`${product.name} added to cart`, 'success');
 }
 
-async function toggleWishlist(productId, toast) {
-  try {
-    const res = await fetch('/api/wishlist', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ productId }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      toast(data.error || 'Could not update wishlist', 'error');
-      return;
-    }
-    toast(data.message || 'Wishlist updated', 'success');
-  } catch {
-    toast('Failed to update wishlist', 'error');
-  }
-}
-
 export default function ProductsPage() {
   return (
     <Suspense fallback={<div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><p style={{ color: '#86868b' }}>Loading products...</p></div>}>
@@ -132,6 +114,7 @@ function ProductsContent() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [compareIds, setCompareIds] = useState([]);
+  const [wishlistedIds, setWishlistedIds] = useState(new Set());
 
   useEffect(() => {
     try {
@@ -142,6 +125,39 @@ function ProductsContent() {
       }
     } catch {}
   }, []);
+
+  useEffect(() => {
+    async function fetchWishlist() {
+      try {
+        const res = await fetch('/api/wishlist');
+        if (res.ok) {
+          const data = await res.json();
+          setWishlistedIds(new Set((data.wishlist || []).map(p => p._id)));
+        }
+      } catch {}
+    }
+    fetchWishlist();
+  }, []);
+
+  async function toggleWishlist(productId) {
+    const isWishlisted = wishlistedIds.has(productId);
+    try {
+      const res = await fetch('/api/wishlist', {
+        method: isWishlisted ? 'DELETE' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId }),
+      });
+      if (res.status === 401) { showToast('Sign in to use wishlist'); return; }
+      const data = await res.json();
+      setWishlistedIds(prev => {
+        const next = new Set(prev);
+        if (isWishlisted) next.delete(productId);
+        else next.add(productId);
+        return next;
+      });
+      showToast(isWishlisted ? 'Removed from wishlist' : 'Added to wishlist', 'success');
+    } catch { showToast('Something went wrong'); }
+  }
 
   function toggleCompare(product) {
     setCompareIds((prev) => {
@@ -798,7 +814,7 @@ function ProductsContent() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          toggleWishlist(product._id, showToast);
+                          toggleWishlist(product._id);
                         }}
                         onMouseEnter={() => setHoveredHeart(product._id)}
                         onMouseLeave={() => setHoveredHeart(null)}
@@ -810,9 +826,11 @@ function ProductsContent() {
                           height: '36px',
                           borderRadius: '50%',
                           border: 'none',
-                          background: hoveredHeart === product._id
+                          background: wishlistedIds.has(product._id)
                             ? 'rgba(255,69,58,0.12)'
-                            : 'rgba(255,255,255,0.85)',
+                            : hoveredHeart === product._id
+                              ? 'rgba(255,69,58,0.12)'
+                              : 'rgba(255,255,255,0.85)',
                           backdropFilter: 'blur(12px)',
                           WebkitBackdropFilter: 'blur(12px)',
                           display: 'flex',
@@ -828,8 +846,8 @@ function ProductsContent() {
                       >
                         <Heart
                           size={16}
-                          stroke={hoveredHeart === product._id ? C.red : C.muted}
-                          fill={hoveredHeart === product._id ? C.red : 'none'}
+                          stroke={wishlistedIds.has(product._id) ? C.red : hoveredHeart === product._id ? C.red : C.muted}
+                          fill={wishlistedIds.has(product._id) ? C.red : hoveredHeart === product._id ? C.red : 'none'}
                           strokeWidth={1.5}
                         />
                       </button>

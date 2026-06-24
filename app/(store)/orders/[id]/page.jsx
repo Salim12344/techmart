@@ -391,6 +391,12 @@ export default function OrderDetailPage({ params }) {
               <span style={{ color: C.muted }}>Ordered</span>
               <span style={{ color: C.text, fontWeight: 500 }}>{formatDate(order.createdAt)}</span>
             </div>
+            {order.confirmedAt && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                <span style={{ color: C.muted }}>Confirmed</span>
+                <span style={{ color: C.text, fontWeight: 500 }}>{formatDate(order.confirmedAt)}</span>
+              </div>
+            )}
             {order.shippedAt && (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
                 <span style={{ color: C.muted }}>Shipped</span>

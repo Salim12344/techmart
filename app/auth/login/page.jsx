@@ -51,15 +51,18 @@ function LoginContent() {
         return;
       }
 
-      const destination = redirectTo.startsWith('/admin') ? '/' : redirectTo;
-
-      const res = await fetch('/api/auth/session');
-      const session = await res.json();
+      let session = null;
+      for (let i = 0; i < 5; i++) {
+        await new Promise((r) => setTimeout(r, 400));
+        const res = await fetch('/api/auth/session');
+        session = await res.json();
+        if (session?.user?.role) break;
+      }
 
       if (session?.user?.role === 'admin') {
         window.location.href = '/admin';
       } else {
-        window.location.href = destination;
+        window.location.href = redirectTo.startsWith('/admin') ? '/' : redirectTo;
       }
     } catch (err) {
       showToast(err.message || 'Something went wrong');

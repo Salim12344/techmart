@@ -252,6 +252,12 @@ export default function AdminOrdersPage() {
                   <span style={{ color: C.muted }}>Ordered</span>
                   <span style={{ color: C.text }}>{new Date(selectedOrder.createdAt).toLocaleDateString()}</span>
                 </div>
+                {selectedOrder.confirmedAt && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+                    <span style={{ color: C.muted }}>Confirmed</span>
+                    <span style={{ color: C.text }}>{new Date(selectedOrder.confirmedAt).toLocaleDateString()}</span>
+                  </div>
+                )}
                 {selectedOrder.shippedAt && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
                     <span style={{ color: C.muted }}>Shipped</span>

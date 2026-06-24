@@ -6,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ToastProvider } from '@/app/components/Toast';
-import { LayoutDashboard, Package, ShoppingCart, Users, ChevronRight, ChevronLeft } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, ChevronRight, ChevronLeft, MessageSquare } from 'lucide-react';
 
 function AdminSidebar() {
   const pathname = usePathname();
@@ -18,6 +18,7 @@ function AdminSidebar() {
     { href: '/admin/products', label: 'Products & Categories', icon: <Package size={18} /> },
     { href: '/admin/orders', label: 'Orders', icon: <ShoppingCart size={18} /> },
     { href: '/admin/users', label: 'Users', icon: <Users size={18} /> },
+    { href: '/admin/support', label: 'Support', icon: <MessageSquare size={18} /> },
   ];
 
   const isActive = (item) => {

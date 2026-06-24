@@ -1,8 +1,10 @@
 // app/api/admin/orders/[id]/route.js
 import { connectDB } from '@/lib/db';
 import Order from '@/models/order';
+import User from '@/models/user';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { sendOrderStatusEmail } from '@/lib/email';
 
 export async function PATCH(req, { params }) {
   try {
@@ -15,10 +17,32 @@ export async function PATCH(req, { params }) {
     const { id } = await params;
     const body = await req.json();
 
-    const order = await Order.findByIdAndUpdate(id, body, { new: true });
-    
-    if (!order) {
+    const currentOrder = await Order.findById(id);
+    if (!currentOrder) {
       return Response.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    if (body.status && body.status !== currentOrder.status) {
+      const timestampMap = {
+        confirmed: 'confirmedAt',
+        shipped: 'shippedAt',
+        delivered: 'deliveredAt',
+      };
+      const field = timestampMap[body.status];
+      if (field) {
+        body[field] = new Date();
+      }
+    }
+
+    const order = await Order.findByIdAndUpdate(id, body, { new: true });
+
+    try {
+      const user = await User.findById(order.userId);
+      if (user?.email && body.status) {
+        await sendOrderStatusEmail(user.email, order, body.status);
+      }
+    } catch (emailError) {
+      console.error('Failed to send status email:', emailError);
     }
 
     return Response.json({ order });

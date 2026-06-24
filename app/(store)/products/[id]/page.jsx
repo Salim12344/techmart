@@ -210,6 +210,7 @@ export default function ProductDetailPage({ params }) {
   const [selectedColor, setSelectedColor] = useState(null);
   const [selectedStorage, setSelectedStorage] = useState(null);
   const [quantity, setQuantity] = useState(1);
+  const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [hoveredAddCart, setHoveredAddCart] = useState(false);
@@ -241,6 +242,14 @@ export default function ProductDetailPage({ params }) {
 
         if (p.colors?.length > 0) setSelectedColor(p.colors[0].name);
         if (p.storageOptions?.length > 0) setSelectedStorage(p.storageOptions[0]);
+
+        try {
+          const wRes = await fetch('/api/wishlist');
+          if (wRes.ok) {
+            const wData = await wRes.json();
+            setIsWishlisted((wData.wishlist || []).some(p => p._id === id));
+          }
+        } catch {}
       } catch {
         if (!cancelled) showToast('Failed to load product', 'error');
       } finally {
@@ -321,31 +330,19 @@ export default function ProductDetailPage({ params }) {
     }
   }
 
-  async function handleAddToWishlist() {
+  async function handleToggleWishlist() {
     setWishlistLoading(true);
     try {
       const res = await fetch('/api/wishlist', {
-        method: 'POST',
+        method: isWishlisted ? 'DELETE' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId: product._id }),
+        body: JSON.stringify({ productId: id }),
       });
-
-      if (res.status === 401) {
-        showToast('Please log in to add to wishlist', 'warning');
-        return;
-      }
-
-      const data = await res.json();
-      if (res.ok) {
-        showToast(data.message || 'Added to wishlist', 'success');
-      } else {
-        showToast(data.error || 'Failed to add to wishlist', 'error');
-      }
-    } catch {
-      showToast('Failed to add to wishlist', 'error');
-    } finally {
-      setWishlistLoading(false);
-    }
+      if (res.status === 401) { showToast('Sign in to use wishlist'); return; }
+      setIsWishlisted(!isWishlisted);
+      showToast(isWishlisted ? 'Removed from wishlist' : 'Added to wishlist', 'success');
+    } catch { showToast('Something went wrong'); }
+    finally { setWishlistLoading(false); }
   }
 
   if (loading) return <SkeletonLoader />;
@@ -864,7 +861,7 @@ export default function ProductDetailPage({ params }) {
                 {selectedVariant?.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
               </button>
               <button
-                onClick={handleAddToWishlist}
+                onClick={handleToggleWishlist}
                 onMouseEnter={() => setHoveredWishlist(true)}
                 onMouseLeave={() => setHoveredWishlist(false)}
                 disabled={wishlistLoading}
@@ -875,10 +872,10 @@ export default function ProductDetailPage({ params }) {
                   alignItems: 'center',
                   justifyContent: 'center',
                   borderRadius: '50%',
-                  border: `1.5px solid ${hoveredWishlist ? C.red : C.border}`,
-                  background: hoveredWishlist ? 'rgba(255,69,58,0.06)' : C.card,
+                  border: `1.5px solid ${isWishlisted || hoveredWishlist ? C.red : C.border}`,
+                  background: isWishlisted || hoveredWishlist ? 'rgba(255,69,58,0.06)' : C.card,
                   cursor: wishlistLoading ? 'not-allowed' : 'pointer',
-                  color: hoveredWishlist ? C.red : C.muted,
+                  color: isWishlisted || hoveredWishlist ? C.red : C.muted,
                   transition: 'all 0.25s ease',
                   flexShrink: 0,
                   padding: 0,
@@ -887,8 +884,8 @@ export default function ProductDetailPage({ params }) {
               >
                 <Heart
                   size={20}
-                  fill={hoveredWishlist ? C.red : 'none'}
-                  stroke={hoveredWishlist ? C.red : C.muted}
+                  fill={isWishlisted ? C.red : 'none'}
+                  stroke={isWishlisted ? C.red : C.muted}
                 />
               </button>
             </div>
