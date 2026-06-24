@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Star, ChevronRight } from 'lucide-react';
@@ -42,6 +43,7 @@ function StarRating({ rating, size = 14 }) {
 }
 
 export default function HomePage() {
+  const { data: session } = useSession();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hoveredCard, setHoveredCard] = useState(null);
@@ -689,7 +691,7 @@ export default function HomePage() {
                 {[
                   { href: '/orders', label: 'Orders' },
                   { href: '/wishlist', label: 'Wishlist' },
-                  { href: '/auth/login', label: 'Sign In' },
+                  ...(!session ? [{ href: '/auth/login', label: 'Sign In' }] : []),
                 ].map((item) => (
                   <li key={item.href}>
                     <Link

@@ -69,7 +69,8 @@ export const authOptions = {
         token.role = user.role;
       }
 
-      if (account?.provider === 'google' || (token.id && !/^[a-f\d]{24}$/i.test(token.id))) {
+      const isValidObjectId = token.id && /^[a-f\d]{24}$/i.test(token.id);
+      if (!isValidObjectId && token.email) {
         try {
           await connectDB();
           const dbUser = await User.findOne({ email: token.email.toLowerCase() });
