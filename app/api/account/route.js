@@ -11,13 +11,14 @@ export async function GET(req) {
     }
 
     await connectDB();
-    const user = await User.findById(session.user.id).select('-password');
+    const user = await User.findById(session.user.id);
 
     if (!user) {
       return Response.json({ error: 'User not found' }, { status: 404 });
     }
 
-    return Response.json({ user });
+    const { password, ...userWithoutPassword } = user.toObject();
+    return Response.json({ user: userWithoutPassword, hasPassword: !!password });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

@@ -42,6 +42,7 @@ export default function AccountPage() {
   const [editingProfile, setEditingProfile] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [hasPassword, setHasPassword] = useState(true);
 
   const [profileForm, setProfileForm] = useState({ name: '', phone: '' });
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -72,6 +73,7 @@ export default function AccountPage() {
       if (res.ok) {
         setProfile(data.user);
         setProfileForm({ name: data.user.name || '', phone: data.user.phone || '' });
+        setHasPassword(data.hasPassword !== false);
       }
     } catch {}
     finally { setLoading(false); }
@@ -97,7 +99,7 @@ export default function AccountPage() {
   }
 
   async function handlePasswordChange() {
-    if (!passwordForm.currentPassword) { showToast('Enter your current password'); return; }
+    if (hasPassword && !passwordForm.currentPassword) { showToast('Enter your current password'); return; }
     if (!passwordStrong) { showToast('New password doesn\'t meet requirements'); return; }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) { showToast('Passwords do not match'); return; }
     setSaving(true);
@@ -111,7 +113,8 @@ export default function AccountPage() {
       if (!res.ok) { showToast(data.error || 'Failed to change password'); return; }
       setChangingPassword(false);
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      showToast('Password changed successfully', 'success');
+      setHasPassword(true);
+      showToast(hasPassword ? 'Password changed successfully' : 'Password set successfully', 'success');
     } catch (err) { showToast(err.message); }
     finally { setSaving(false); }
   }
@@ -236,7 +239,9 @@ export default function AccountPage() {
             </div>
             <div>
               <h3 style={{ fontSize: '1rem', fontWeight: 600, color: C.text, margin: 0 }}>Password</h3>
-              <p style={{ fontSize: '0.8125rem', color: C.muted, margin: '0.125rem 0 0' }}>Change your account password</p>
+              <p style={{ fontSize: '0.8125rem', color: C.muted, margin: '0.125rem 0 0' }}>
+                {hasPassword ? 'Change your account password' : 'Set a password to sign in with email'}
+              </p>
             </div>
           </div>
           {!changingPassword && (
@@ -245,30 +250,40 @@ export default function AccountPage() {
               padding: '0.5rem 1rem', fontSize: '0.8125rem', fontWeight: 500,
               color: C.text, cursor: 'pointer', fontFamily: 'inherit',
             }}>
-              Change
+              {hasPassword ? 'Change' : 'Set Password'}
             </button>
           )}
         </div>
 
         {changingPassword && (
           <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div>
-              <label style={labelStyle}>Current Password</label>
-              <div style={{ position: 'relative' }}>
-                <input style={inputStyle} type={showCurrentPw ? 'text' : 'password'}
-                  value={passwordForm.currentPassword}
-                  onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                  {...focusHandlers} />
-                <button type="button" onClick={() => setShowCurrentPw(!showCurrentPw)} style={{
-                  position: 'absolute', right: '0.875rem', top: '50%', transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', color: C.muted, cursor: 'pointer', padding: 0,
-                }}>
-                  {showCurrentPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
+            {hasPassword && (
+              <div>
+                <label style={labelStyle}>Current Password</label>
+                <div style={{ position: 'relative' }}>
+                  <input style={inputStyle} type={showCurrentPw ? 'text' : 'password'}
+                    value={passwordForm.currentPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                    {...focusHandlers} />
+                  <button type="button" onClick={() => setShowCurrentPw(!showCurrentPw)} style={{
+                    position: 'absolute', right: '0.875rem', top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', color: C.muted, cursor: 'pointer', padding: 0,
+                  }}>
+                    {showCurrentPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+            {!hasPassword && (
+              <div style={{
+                padding: '0.75rem 1rem', borderRadius: 12,
+                background: C.blueBg, fontSize: '0.8125rem', color: C.blue,
+              }}>
+                You signed up with Google. Set a password below to also sign in with your email.
+              </div>
+            )}
             <div>
-              <label style={labelStyle}>New Password</label>
+              <label style={labelStyle}>{hasPassword ? 'New Password' : 'Password'}</label>
               <div style={{ position: 'relative' }}>
                 <input style={inputStyle} type={showNewPw ? 'text' : 'password'}
                   value={passwordForm.newPassword}
@@ -317,7 +332,7 @@ export default function AccountPage() {
                 padding: '0.625rem 1.25rem', fontSize: '0.9375rem', fontWeight: 500,
                 cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
               }}>
-                <Lock size={16} /> {saving ? 'Changing...' : 'Change Password'}
+                <Lock size={16} /> {saving ? (hasPassword ? 'Changing...' : 'Setting...') : (hasPassword ? 'Change Password' : 'Set Password')}
               </button>
               <button onClick={() => {
                 setChangingPassword(false);

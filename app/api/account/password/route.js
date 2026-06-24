@@ -13,8 +13,8 @@ export async function POST(req) {
     await connectDB();
     const { currentPassword, newPassword, confirmPassword } = await req.json();
 
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      return Response.json({ error: 'All fields are required' }, { status: 400 });
+    if (!newPassword || !confirmPassword) {
+      return Response.json({ error: 'New password and confirmation are required' }, { status: 400 });
     }
 
     if (newPassword !== confirmPassword) {
@@ -33,14 +33,22 @@ export async function POST(req) {
       return Response.json({ error: 'User not found' }, { status: 404 });
     }
 
-    if (user.password !== currentPassword) {
-      return Response.json({ error: 'Current password is incorrect' }, { status: 400 });
+    if (user.password) {
+      if (!currentPassword) {
+        return Response.json({ error: 'Current password is required' }, { status: 400 });
+      }
+      if (user.password !== currentPassword) {
+        return Response.json({ error: 'Current password is incorrect' }, { status: 400 });
+      }
     }
 
     user.password = newPassword;
     await user.save();
 
-    return Response.json({ message: 'Password changed successfully' });
+    return Response.json({
+      message: user.password ? 'Password changed successfully' : 'Password set successfully',
+      hasPassword: true,
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
