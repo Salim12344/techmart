@@ -538,13 +538,32 @@ export default function AdminProductsPage() {
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', background: C.card, borderRadius: '8px', border: `1px solid ${C.border}` }}>
                           <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: color.hex, flexShrink: 0, border: `1px solid ${C.border}` }} />
                           <span style={{ flex: 1, fontSize: '0.9375rem', color: C.text }}>{color.name}</span>
-                          {color.image ? (
-                            <div style={{ width: '32px', height: '32px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, border: `1px solid ${C.border}` }}>
-                              <Image src={color.image} alt={color.name} width={32} height={32} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            </div>
-                          ) : (
-                            <span style={{ fontSize: '0.6875rem', color: C.muted }}>No image</span>
-                          )}
+                          <label style={{
+                            width: '36px', height: '36px', borderRadius: '8px',
+                            border: `1px solid ${C.border}`, background: C.bg,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', flexShrink: 0, overflow: 'hidden',
+                          }} title={color.image ? 'Change image' : 'Upload image'}>
+                            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
+                              const file = e.target.files?.[0]; if (!file) return;
+                              try {
+                                const fd = new FormData(); fd.append('file', file);
+                                const res = await fetch('/api/upload', { method: 'POST', body: fd });
+                                const data = await res.json();
+                                if (!res.ok) { showToast(data.error || 'Upload failed'); return; }
+                                setForm(prev => ({
+                                  ...prev,
+                                  colors: prev.colors.map((c, idx) => idx === i ? { ...c, image: data.url } : c)
+                                }));
+                                showToast('Image uploaded', 'success');
+                              } catch (err) { showToast(err.message); }
+                            }} />
+                            {color.image ? (
+                              <Image src={color.image} alt={color.name} width={36} height={36} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              <span style={{ fontSize: '1rem', color: C.blue, fontWeight: 300 }}>+</span>
+                            )}
+                          </label>
                           <span style={{ fontSize: '0.75rem', color: C.muted, fontFamily: 'monospace' }}>{color.hex}</span>
                           <button type="button" onClick={() => removeColor(i)} style={{ background: 'none', border: 'none', color: C.red, cursor: 'pointer', fontSize: '0.8125rem', fontFamily: 'inherit' }}>Remove</button>
                         </div>
