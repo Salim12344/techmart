@@ -293,7 +293,7 @@ export default function ProductDetailPage({ params }) {
           const data = await res.json();
           const delivered = (data.orders || []).filter(
             (o) => o.status === 'delivered' && o.items.some((item) => {
-              const pid = item.productId?._id || item.productId;
+              const pid = String(item.productId?._id || item.productId || '');
               return pid === id;
             })
           );

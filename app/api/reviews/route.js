@@ -16,17 +16,21 @@ export async function POST(req) {
     await connectDB();
     const { productId, rating, comment, orderId } = await req.json();
 
-    // Verify user has purchased the product
-    const order = await Order.findOne({
-      _id: orderId,
-      userId: session.user.id,
-      status: 'delivered',
-      'items.productId': productId,
-    });
+    // Check for existing review
+    const existingReview = await Review.findOne({ productId, userId: session.user.id });
+    if (existingReview) {
+      return Response.json({ error: 'You have already reviewed this product' }, { status: 400 });
+    }
+
+    // Verify user has purchased and received the product
+    const userOrders = await Order.find({ userId: session.user.id, status: 'delivered' });
+    const order = userOrders.find(o =>
+      o.items.some(item => item.productId?.toString() === productId)
+    );
 
     if (!order) {
       return Response.json(
-        { error: 'You must have purchased this product to review it' },
+        { error: 'You must have purchased and received this product to review it' },
         { status: 403 }
       );
     }
