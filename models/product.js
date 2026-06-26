@@ -8,7 +8,7 @@ const ProductSchema = new mongoose.Schema(
     image: String,
     warranty: String,
     tags: [String],
-    colors: [{ name: String, hex: String }],
+    colors: [{ name: String, hex: String, image: String }],
     storageOptions: [String],
     variants: [
       {

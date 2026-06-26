@@ -143,7 +143,8 @@ export default function AdminProductsPage() {
     warranty: '', tags: [], colors: [], storageOptions: [], variants: [], specs: {},
   });
   const [expandedProduct, setExpandedProduct] = useState(null);
-  const [newColor, setNewColor] = useState({ name: '', hex: '#000000' });
+  const [newColor, setNewColor] = useState({ name: '', hex: '#000000', image: '' });
+  const [colorImageUploading, setColorImageUploading] = useState(false);
   const [newStorage, setNewStorage] = useState('');
 
   // ── Categories ───────────────────────────────────────────────────
@@ -234,10 +235,23 @@ export default function AdminProductsPage() {
   const addColor = () => {
     if (!newColor.name.trim()) { showToast('Color name is required'); return; }
     if (form.colors.some(c => c.name.toLowerCase() === newColor.name.toLowerCase())) { showToast('Color already exists'); return; }
-    const c = { ...newColor };
+    const c = { name: newColor.name, hex: newColor.hex, image: newColor.image || '' };
     const newVariants = form.storageOptions.map(s => ({ color: c.name, storage: s, sku: generateSKU(form.name, c.name, s), price: 0, stock: 0 }));
     setForm(prev => ({ ...prev, colors: [...prev.colors, c], variants: [...prev.variants, ...newVariants] }));
-    setNewColor({ name: '', hex: '#000000' });
+    setNewColor({ name: '', hex: '#000000', image: '' });
+  };
+
+  const handleColorImageUpload = async (e) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    setColorImageUploading(true);
+    try {
+      const fd = new FormData(); fd.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || 'Upload failed'); return; }
+      setNewColor(prev => ({ ...prev, image: data.url }));
+    } catch (err) { showToast(err.message); }
+    finally { setColorImageUploading(false); }
   };
 
   const removeColor = (i) => {
@@ -317,7 +331,7 @@ export default function AdminProductsPage() {
 
   const resetForm = () => {
     setForm({ name: '', category: '', description: '', image: '', warranty: '', tags: [], colors: [], storageOptions: [], variants: [], specs: {} });
-    setEditingId(null); setNewColor({ name: '', hex: '#000000' }); setNewStorage('');
+    setEditingId(null); setNewColor({ name: '', hex: '#000000', image: '' }); setNewStorage('');
   };
 
   const handleEdit = (product) => {
@@ -401,7 +415,7 @@ export default function AdminProductsPage() {
           .admin-products-table-wrap table { min-width: 600px; }
           .admin-categories-grid { grid-template-columns: 1fr !important; }
           .admin-spec-fields-grid { grid-template-columns: 1fr !important; }
-          .admin-custom-field-grid { grid-template-columns: 1fr 1fr !important; }
+          .admin-custom-field-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
       <button onClick={() => router.push('/admin')} style={{ background: 'none', border: 'none', color: '#0071e3', cursor: 'pointer', fontSize: '0.9375rem', fontFamily: 'inherit', padding: 0, display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
@@ -524,15 +538,30 @@ export default function AdminProductsPage() {
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', background: C.card, borderRadius: '8px', border: `1px solid ${C.border}` }}>
                           <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: color.hex, flexShrink: 0, border: `1px solid ${C.border}` }} />
                           <span style={{ flex: 1, fontSize: '0.9375rem', color: C.text }}>{color.name}</span>
+                          {color.image ? (
+                            <div style={{ width: '32px', height: '32px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, border: `1px solid ${C.border}` }}>
+                              <Image src={color.image} alt={color.name} width={32} height={32} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: '0.6875rem', color: C.muted }}>No image</span>
+                          )}
                           <span style={{ fontSize: '0.75rem', color: C.muted, fontFamily: 'monospace' }}>{color.hex}</span>
                           <button type="button" onClick={() => removeColor(i)} style={{ background: 'none', border: 'none', color: C.red, cursor: 'pointer', fontSize: '0.8125rem', fontFamily: 'inherit' }}>Remove</button>
                         </div>
                       ))}
                     </div>
                   )}
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     <input style={{ ...smInputStyle, flex: 1 }} type="text" placeholder="Color name (e.g., Space Black)" value={newColor.name} onChange={e => setNewColor({ ...newColor, name: e.target.value })} />
                     <input type="color" value={newColor.hex} onChange={e => setNewColor({ ...newColor, hex: e.target.value })} style={{ width: '44px', height: '38px', borderRadius: '8px', border: `1px solid ${C.border}`, cursor: 'pointer', padding: '2px' }} />
+                    <label style={{ width: '40px', height: '40px', borderRadius: '8px', border: `1px solid ${C.border}`, background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: colorImageUploading ? 'wait' : 'pointer', flexShrink: 0, overflow: 'hidden', position: 'relative' }} title="Upload color image">
+                      <input type="file" accept="image/*" onChange={handleColorImageUpload} disabled={colorImageUploading} style={{ display: 'none' }} />
+                      {newColor.image ? (
+                        <Image src={newColor.image} alt="Color" width={40} height={40} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <span style={{ fontSize: '1.25rem', color: colorImageUploading ? C.muted : C.blue, fontWeight: 300, lineHeight: 1 }}>{colorImageUploading ? '...' : '+'}</span>
+                      )}
+                    </label>
                     <button type="button" onClick={addColor} style={{ background: C.blue, color: '#fff', border: 'none', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.8125rem', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>Add</button>
                   </div>
                 </div>

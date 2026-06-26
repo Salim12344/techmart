@@ -437,6 +437,14 @@ export default function ProductDetailPage({ params }) {
 
   const colorObj = product.colors?.find((c) => c.name === selectedColor);
 
+  const displayImage = (() => {
+    if (selectedColor) {
+      const colorWithImage = product.colors?.find(c => c.name === selectedColor);
+      if (colorWithImage?.image) return colorWithImage.image;
+    }
+    return product.image;
+  })();
+
   return (
     <div style={{ background: C.bg, minHeight: '100vh' }}>
       {/* Breadcrumb */}
@@ -542,9 +550,10 @@ export default function ProductDetailPage({ params }) {
                 padding: '2.5rem',
               }}
             >
-              {product.image ? (
+              {displayImage ? (
                 <Image
-                  src={product.image}
+                  key={displayImage}
+                  src={displayImage}
                   alt={product.name}
                   width={500}
                   height={500}
