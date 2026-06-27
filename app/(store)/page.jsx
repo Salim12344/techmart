@@ -1,10 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, Star, ChevronRight } from 'lucide-react';
+import { ArrowRight, Star, ChevronRight, Truck, Shield, Lock, Headphones } from 'lucide-react';
+
+const FONT = "'Mona Sans', -apple-system, BlinkMacSystemFont, sans-serif";
+const SERIF = "'Instrument Serif', serif";
 
 const C = {
   bg: '#f5f5f7', card: '#ffffff', border: '#e8e8ed',
@@ -14,8 +17,6 @@ const C = {
   orangeBg: 'rgba(255,159,10,0.1)', redBg: 'rgba(255,69,58,0.08)',
   blueBg: 'rgba(0,113,227,0.08)',
 };
-
-const FONT_FAMILY = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', sans-serif";
 
 function getMinPrice(variants) {
   if (!variants || variants.length === 0) return 0;
@@ -42,6 +43,87 @@ function StarRating({ rating, size = 14 }) {
   );
 }
 
+function useScrollReveal() {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+    const targets = el.querySelectorAll('.reveal');
+    targets.forEach((t) => observer.observe(t));
+    return () => observer.disconnect();
+  }, []);
+  return ref;
+}
+
+function useCountUp(target, duration = 2000) {
+  const [count, setCount] = useState(0);
+  const [started, setStarted] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !started) {
+          setStarted(true);
+          let start = 0;
+          const step = target / (duration / 16);
+          const timer = setInterval(() => {
+            start += step;
+            if (start >= target) {
+              setCount(target);
+              clearInterval(timer);
+            } else {
+              setCount(Math.floor(start));
+            }
+          }, 16);
+        }
+      },
+      { threshold: 0.3 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [target, duration, started]);
+
+  return { count, ref };
+}
+
+function StatItem({ value, suffix = '', label }) {
+  const { count, ref } = useCountUp(value);
+  return (
+    <div ref={ref} className="reveal" style={{ textAlign: 'center', flex: '1 1 200px' }}>
+      <div style={{
+        fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
+        fontWeight: 700,
+        color: '#ffffff',
+        fontFamily: FONT,
+        letterSpacing: '-0.04em',
+        lineHeight: 1,
+        marginBottom: '0.5rem',
+      }}>
+        {count.toLocaleString()}{suffix}
+      </div>
+      <div style={{
+        fontSize: '1rem',
+        color: '#a1a1a6',
+        fontFamily: FONT,
+        fontWeight: 400,
+      }}>
+        {label}
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const { data: session } = useSession();
   const [products, setProducts] = useState([]);
@@ -49,7 +131,20 @@ export default function HomePage() {
   const [hoveredCard, setHoveredCard] = useState(null);
   const [hoveredCat, setHoveredCat] = useState(null);
   const [heroHover, setHeroHover] = useState(false);
-  const [hoveredFooterLink, setHoveredFooterLink] = useState(null);
+  const [secondaryHover, setSecondaryHover] = useState(false);
+  const [hoveredBenefit, setHoveredBenefit] = useState(null);
+  const [subscribeHover, setSubscribeHover] = useState(false);
+  const [subscribeEmail, setSubscribeEmail] = useState('');
+  const [subscribing, setSubscribing] = useState(false);
+  const [subscribeMsg, setSubscribeMsg] = useState('');
+  const [subscribeType, setSubscribeType] = useState('');
+
+  const sectionRef1 = useScrollReveal();
+  const sectionRef2 = useScrollReveal();
+  const sectionRef3 = useScrollReveal();
+  const sectionRef4 = useScrollReveal();
+  const sectionRef5 = useScrollReveal();
+  const sectionRef6 = useScrollReveal();
 
   useEffect(() => {
     fetch('/api/products')
@@ -64,7 +159,6 @@ export default function HomePage() {
   const featured = products.slice(0, 8);
   const categories = [...new Set(products.map((p) => p.category).filter(Boolean))];
 
-  // Count products per category
   const categoryCounts = {};
   products.forEach((p) => {
     if (p.category) {
@@ -72,10 +166,17 @@ export default function HomePage() {
     }
   });
 
-  return (
-    <div style={{ minHeight: '100vh', background: '#000000', fontFamily: FONT_FAMILY }}>
+  const benefits = [
+    { icon: Truck, title: 'Free Delivery', desc: 'Free shipping on orders over ₦500,000', color: '#30d158', bg: 'rgba(48,209,88,0.12)' },
+    { icon: Shield, title: 'Genuine Products', desc: '100% authentic Apple products guaranteed', color: '#0071e3', bg: 'rgba(0,113,227,0.12)' },
+    { icon: Lock, title: 'Secure Payments', desc: 'Your payment information is always safe', color: '#ff9f0a', bg: 'rgba(255,159,10,0.12)' },
+    { icon: Headphones, title: '24/7 Support', desc: 'Round-the-clock customer assistance', color: '#bf5af2', bg: 'rgba(191,90,242,0.12)' },
+  ];
 
-      {/* ── Hero Section ─────────────────────────────────── */}
+  return (
+    <div style={{ minHeight: '100vh', background: '#000000', fontFamily: FONT }}>
+
+      {/* ── HERO SECTION ─────────────────────────────────── */}
       <section
         style={{
           position: 'relative',
@@ -84,385 +185,361 @@ export default function HomePage() {
           alignItems: 'center',
           justifyContent: 'center',
           minHeight: '100vh',
-          padding: '4rem 1.5rem',
+          padding: '6rem 1.5rem 4rem',
           textAlign: 'center',
           background: 'linear-gradient(180deg, #000000 0%, #1d1d1f 100%)',
           overflow: 'hidden',
         }}
       >
-        {/* Gradient orb - top right */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '-20%',
-            right: '-10%',
-            width: '600px',
-            height: '600px',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(0,113,227,0.15) 0%, transparent 70%)',
-            filter: 'blur(80px)',
-            pointerEvents: 'none',
-            animation: 'float 8s ease-in-out infinite',
-          }}
-        />
-        {/* Gradient orb - bottom left */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '-15%',
-            left: '-10%',
-            width: '500px',
-            height: '500px',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(88,86,214,0.12) 0%, transparent 70%)',
-            filter: 'blur(80px)',
-            pointerEvents: 'none',
-            animation: 'float 10s ease-in-out 2s infinite',
-          }}
-        />
+        {/* Gradient orbs */}
+        <div style={{
+          position: 'absolute', top: '-20%', right: '-10%',
+          width: '600px', height: '600px', borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(0,113,227,0.15) 0%, transparent 70%)',
+          filter: 'blur(80px)', pointerEvents: 'none',
+          animation: 'glowPulse 8s ease-in-out infinite',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: '-15%', left: '-10%',
+          width: '500px', height: '500px', borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(88,86,214,0.12) 0%, transparent 70%)',
+          filter: 'blur(80px)', pointerEvents: 'none',
+          animation: 'glowPulse 10s ease-in-out 2s infinite',
+        }} />
+        <div style={{
+          position: 'absolute', top: '30%', left: '50%',
+          width: '400px', height: '400px', borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(191,90,242,0.08) 0%, transparent 70%)',
+          filter: 'blur(60px)', pointerEvents: 'none',
+          animation: 'glowPulse 12s ease-in-out 4s infinite',
+          transform: 'translateX(-50%)',
+        }} />
 
-        <div style={{ position: 'relative', zIndex: 1, animation: 'fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both' }}>
-          <h1
-            style={{
-              fontSize: 'clamp(3rem, 8vw, 6rem)',
-              fontWeight: 700,
-              letterSpacing: '-0.06em',
-              color: '#ffffff',
-              margin: '0 0 1.25rem',
-              lineHeight: 1,
-              fontFamily: FONT_FAMILY,
-            }}
-          >
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <h1 style={{
+            fontSize: 'clamp(3.5rem, 10vw, 7rem)',
+            fontWeight: 700,
+            letterSpacing: '-0.06em',
+            color: '#ffffff',
+            margin: '0 0 1rem',
+            lineHeight: 0.95,
+            fontFamily: FONT,
+            animation: 'heroFadeUp 0.8s cubic-bezier(0.16,1,0.3,1) both',
+          }}>
             TechMart
           </h1>
-          <p
-            className="hero-subtitle-animated"
-            style={{
-              fontSize: 'clamp(1.125rem, 2.5vw, 1.5rem)',
-              margin: '0 0 3rem',
-              maxWidth: '560px',
-              lineHeight: 1.5,
-              fontWeight: 500,
-              fontFamily: FONT_FAMILY,
-              letterSpacing: '-0.01em',
-              background: 'linear-gradient(90deg, #a1a1a6, #f5f5f7, #a1a1a6)',
-              backgroundSize: '200% 100%',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              animation: 'gradientShift 4s ease-in-out infinite',
-            }}
-          >
-            The Apple experience, reimagined.
+          <p style={{
+            fontSize: 'clamp(1.125rem, 2.5vw, 1.5rem)',
+            margin: '0 0 2.5rem',
+            maxWidth: '560px',
+            lineHeight: 1.5,
+            fontWeight: 500,
+            fontFamily: FONT,
+            letterSpacing: '-0.01em',
+            background: 'linear-gradient(90deg, #a1a1a6, #f5f5f7, #a1a1a6)',
+            backgroundSize: '200% 100%',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            animation: 'heroFadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.15s both',
+          }}>
+            Premium Apple products, delivered to your&nbsp;door.
           </p>
-          <Link
-            href="/products"
-            onMouseEnter={() => setHeroHover(true)}
-            onMouseLeave={() => setHeroHover(false)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.625rem',
-              padding: '0.9375rem 2.25rem',
-              background: heroHover
-                ? 'rgba(255, 255, 255, 0.18)'
-                : 'rgba(255, 255, 255, 0.12)',
-              color: '#ffffff',
-              borderRadius: '980px',
-              fontSize: '1.0625rem',
-              fontWeight: 500,
-              fontFamily: FONT_FAMILY,
-              textDecoration: 'none',
-              letterSpacing: '-0.01em',
-              border: '1px solid rgba(255, 255, 255, 0.18)',
-              transition: 'all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1)',
-              transform: heroHover ? 'scale(1.03)' : 'scale(1)',
-              boxShadow: heroHover
-                ? '0 0 30px rgba(0, 113, 227, 0.35), 0 4px 20px rgba(0, 0, 0, 0.3)'
-                : '0 2px 12px rgba(0, 0, 0, 0.2)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-            }}
-          >
-            Explore Products
-            <ArrowRight size={18} strokeWidth={1.8} />
-          </Link>
+          <div style={{
+            display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap',
+            animation: 'heroFadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.3s both',
+          }}>
+            <Link
+              href="/products"
+              onMouseEnter={() => setHeroHover(true)}
+              onMouseLeave={() => setHeroHover(false)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.625rem',
+                padding: '0.9375rem 2.25rem',
+                background: heroHover ? C.blue : '#ffffff',
+                color: heroHover ? '#ffffff' : '#1d1d1f',
+                borderRadius: '980px', fontSize: '1.0625rem', fontWeight: 600,
+                fontFamily: FONT, textDecoration: 'none', letterSpacing: '-0.01em',
+                border: 'none',
+                transition: 'all 0.4s cubic-bezier(0.25,0.1,0.25,1)',
+                transform: heroHover ? 'scale(1.03)' : 'scale(1)',
+                boxShadow: heroHover
+                  ? '0 0 30px rgba(0,113,227,0.4), 0 4px 20px rgba(0,0,0,0.3)'
+                  : '0 2px 12px rgba(0,0,0,0.2)',
+              }}
+            >
+              Shop Now
+              <ArrowRight size={18} strokeWidth={2} />
+            </Link>
+            <Link
+              href="/products"
+              onMouseEnter={() => setSecondaryHover(true)}
+              onMouseLeave={() => setSecondaryHover(false)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.9375rem 2.25rem',
+                background: secondaryHover ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.1)',
+                color: '#ffffff',
+                borderRadius: '980px', fontSize: '1.0625rem', fontWeight: 500,
+                fontFamily: FONT, textDecoration: 'none', letterSpacing: '-0.01em',
+                border: '1px solid rgba(255,255,255,0.2)',
+                transition: 'all 0.4s cubic-bezier(0.25,0.1,0.25,1)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+              }}
+            >
+              Explore
+            </Link>
+          </div>
+        </div>
+
+        {/* Product Image Slider */}
+        {featured.length > 0 && (
+          <div style={{
+            overflow: 'hidden', width: '100%', marginTop: '4rem',
+            position: 'relative', zIndex: 1,
+            animation: 'heroFadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.5s both',
+            maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)',
+            WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)',
+          }}>
+            <div style={{
+              display: 'flex', gap: '1.5rem',
+              animation: 'scrollLeft 30s linear infinite',
+              width: 'fit-content',
+            }}>
+              {[...featured, ...featured].map((product, i) => (
+                <Link
+                  key={`${product._id}-${i}`}
+                  href={`/products/${product._id}`}
+                  style={{
+                    flexShrink: 0, width: '200px', height: '200px',
+                    borderRadius: '20px',
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    overflow: 'hidden',
+                    textDecoration: 'none',
+                    transition: 'all 0.3s ease',
+                  }}
+                >
+                  {product.image ? (
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      width={160}
+                      height={160}
+                      style={{ objectFit: 'contain', padding: '1.25rem' }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: '60px', height: '60px', borderRadius: '16px',
+                      background: 'rgba(255,255,255,0.08)',
+                    }} />
+                  )}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ── TAGLINE BAND ─────────────────────────────────── */}
+      <section ref={sectionRef1} style={{ background: '#ffffff', padding: '6rem 1.5rem', textAlign: 'center' }}>
+        <div className="reveal" style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <h2 style={{
+            fontSize: 'clamp(2.5rem, 6vw, 4rem)',
+            fontWeight: 700, letterSpacing: '-0.04em',
+            color: C.text, margin: '0 0 0.5rem',
+            fontFamily: FONT, lineHeight: 1.1,
+          }}>
+            Premium Apple products.
+          </h2>
+          <p style={{
+            fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+            fontFamily: SERIF, fontStyle: 'italic',
+            color: C.muted, margin: 0,
+            fontWeight: 400, lineHeight: 1.2,
+          }}>
+            Delivered to your door.
+          </p>
         </div>
       </section>
 
-      {/* ── Featured Products ────────────────────────────── */}
-      <section style={{ background: '#ffffff' }}>
+      {/* ── FEATURED PRODUCTS ────────────────────────────── */}
+      <section ref={sectionRef2} style={{ background: C.bg }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '5rem 1.5rem 6rem' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'space-between',
-              marginBottom: '3rem',
-              animation: 'fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',
-            }}
-          >
+          <div className="reveal" style={{
+            display: 'flex', alignItems: 'flex-end',
+            justifyContent: 'space-between', marginBottom: '3rem', flexWrap: 'wrap', gap: '1rem',
+          }}>
             <div>
-              <h2
-                style={{
-                  fontSize: 'clamp(2rem, 4vw, 3rem)',
-                  fontWeight: 700,
-                  letterSpacing: '-0.04em',
-                  color: C.text,
-                  margin: '0 0 0.375rem',
-                  fontFamily: FONT_FAMILY,
-                  lineHeight: 1.1,
-                }}
-              >
-                Featured
-              </h2>
-              <p
-                style={{
-                  fontSize: '1.0625rem',
-                  color: C.muted,
-                  margin: 0,
-                  fontWeight: 400,
-                  fontFamily: FONT_FAMILY,
-                }}
-              >
+              <span style={{
+                display: 'inline-block', fontSize: '0.75rem', fontWeight: 700,
+                textTransform: 'uppercase', letterSpacing: '0.1em',
+                color: C.blue, background: C.blueBg,
+                padding: '0.375rem 1rem', borderRadius: '980px',
+                marginBottom: '1rem', fontFamily: FONT,
+              }}>
+                Featured Collection
+              </span>
+              <h2 style={{
+                fontSize: 'clamp(2rem, 4vw, 3rem)',
+                fontWeight: 700, letterSpacing: '-0.04em',
+                color: C.text, margin: '0 0 0.375rem',
+                fontFamily: FONT, lineHeight: 1.1,
+              }}>
                 Handpicked for you
+              </h2>
+              <p style={{ fontSize: '1.0625rem', color: C.muted, margin: 0, fontFamily: FONT }}>
+                Our most popular products, chosen by our team
               </p>
             </div>
-            <Link
-              href="/products"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-                color: C.blue,
-                fontSize: '1rem',
-                fontWeight: 500,
-                fontFamily: FONT_FAMILY,
-                textDecoration: 'none',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              View All
-              <ChevronRight size={17} />
+            <Link href="/products" style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+              color: C.blue, fontSize: '1rem', fontWeight: 500,
+              fontFamily: FONT, textDecoration: 'none',
+            }}>
+              View All <ChevronRight size={17} />
             </Link>
           </div>
 
           {loading ? (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))',
-                gap: '1.5rem',
-              }}
-            >
+            <div className="featured-grid" style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))',
+              gap: '1.5rem',
+            }}>
               {[...Array(4)].map((_, i) => (
-                <div
-                  key={i}
-                  style={{
-                    background: '#fafafa',
-                    borderRadius: '20px',
-                    height: '420px',
-                    animation: 'shimmer 1.5s ease-in-out infinite',
-                    backgroundImage: 'linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%)',
-                    backgroundSize: '200% 100%',
-                  }}
-                />
+                <div key={i} style={{
+                  background: '#ffffff', borderRadius: '20px', height: '420px',
+                  animation: 'shimmer 1.5s ease-in-out infinite',
+                  backgroundImage: 'linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%)',
+                  backgroundSize: '200% 100%',
+                }} />
               ))}
             </div>
           ) : featured.length === 0 ? (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: '5rem 1rem',
-                color: C.muted,
-                fontSize: '1.125rem',
-                fontFamily: FONT_FAMILY,
-              }}
-            >
+            <div style={{
+              textAlign: 'center', padding: '5rem 1rem',
+              color: C.muted, fontSize: '1.125rem', fontFamily: FONT,
+            }}>
               No products available yet.
             </div>
           ) : (
-            <div
-              className="featured-grid"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))',
-                gap: '1.5rem',
-              }}
-            >
+            <div className="featured-grid" style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '1.5rem',
+            }}>
               {featured.map((product, index) => {
                 const minPrice = getMinPrice(product.variants);
                 const isHovered = hoveredCard === product._id;
-
                 return (
                   <Link
                     key={product._id}
                     href={`/products/${product._id}`}
+                    className={`reveal delay-${(index % 4) + 1}`}
                     onMouseEnter={() => setHoveredCard(product._id)}
                     onMouseLeave={() => setHoveredCard(null)}
                     style={{
-                      textDecoration: 'none',
-                      color: 'inherit',
-                      background: '#ffffff',
-                      borderRadius: '20px',
-                      border: isHovered ? '1px solid transparent' : '1px solid rgba(0, 0, 0, 0.06)',
+                      textDecoration: 'none', color: 'inherit',
+                      background: '#ffffff', borderRadius: '20px',
+                      border: isHovered ? '1px solid transparent' : '1px solid rgba(0,0,0,0.06)',
                       overflow: 'hidden',
-                      transition: 'all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1)',
+                      transition: 'all 0.4s cubic-bezier(0.25,0.1,0.25,1)',
                       transform: isHovered ? 'translateY(-8px)' : 'translateY(0)',
                       boxShadow: isHovered
-                        ? '0 20px 60px rgba(0, 0, 0, 0.12)'
-                        : '0 1px 4px rgba(0, 0, 0, 0.04)',
-                      animation: `fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${index * 0.06}s both`,
+                        ? '0 20px 60px rgba(0,0,0,0.12)'
+                        : '0 1px 4px rgba(0,0,0,0.04)',
                       position: 'relative',
                     }}
                   >
-                    <div
-                      style={{
-                        position: 'relative',
-                        width: '100%',
-                        aspectRatio: '1',
-                        background: 'linear-gradient(180deg, #fafafa 0%, #f0f0f0 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        overflow: 'hidden',
-                      }}
-                    >
+                    <div style={{
+                      position: 'relative', width: '100%', aspectRatio: '1',
+                      background: 'linear-gradient(180deg, #fafafa 0%, #f0f0f0 100%)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      overflow: 'hidden',
+                    }}>
                       {product.image ? (
                         <Image
-                          src={product.image}
-                          alt={product.name}
-                          width={300}
-                          height={300}
+                          src={product.image} alt={product.name}
+                          width={300} height={300}
                           style={{
-                            objectFit: 'contain',
-                            padding: '2rem',
-                            transition: 'transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1)',
+                            objectFit: 'contain', padding: '2rem',
+                            transition: 'transform 0.5s cubic-bezier(0.25,0.1,0.25,1)',
                             transform: isHovered ? 'scale(1.08)' : 'scale(1)',
                           }}
                         />
                       ) : (
-                        <div
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            background: 'linear-gradient(135deg, #f5f5f7 0%, #e8e8ed 50%, #f5f5f7 100%)',
-                            backgroundSize: '200% 200%',
-                            animation: 'gradientShift 6s ease-in-out infinite',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: '60px',
-                              height: '60px',
-                              borderRadius: '16px',
-                              background: 'rgba(0, 0, 0, 0.03)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: '28px',
-                                height: '28px',
-                                borderRadius: '50%',
-                                background: 'linear-gradient(135deg, #d2d2d7, #e8e8ed)',
-                              }}
-                            />
+                        <div style={{
+                          width: '100%', height: '100%',
+                          background: 'linear-gradient(135deg, #f5f5f7 0%, #e8e8ed 50%, #f5f5f7 100%)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <div style={{
+                            width: '60px', height: '60px', borderRadius: '16px',
+                            background: 'rgba(0,0,0,0.03)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            <div style={{
+                              width: '28px', height: '28px', borderRadius: '50%',
+                              background: 'linear-gradient(135deg, #d2d2d7, #e8e8ed)',
+                            }} />
                           </div>
                         </div>
                       )}
                     </div>
                     <div style={{ padding: '1.125rem 1.375rem 1.375rem' }}>
                       {product.category && (
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            fontSize: '0.6875rem',
-                            fontWeight: 600,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            color: C.blue,
-                            background: 'rgba(0, 113, 227, 0.06)',
-                            padding: '0.25rem 0.75rem',
-                            borderRadius: '980px',
-                            marginBottom: '0.625rem',
-                            fontFamily: FONT_FAMILY,
-                            backdropFilter: 'blur(8px)',
-                            WebkitBackdropFilter: 'blur(8px)',
-                            border: '1px solid rgba(0, 113, 227, 0.08)',
-                          }}
-                        >
+                        <span style={{
+                          display: 'inline-block', fontSize: '0.6875rem', fontWeight: 600,
+                          textTransform: 'uppercase', letterSpacing: '0.05em',
+                          color: C.blue, background: 'rgba(0,113,227,0.06)',
+                          padding: '0.25rem 0.75rem', borderRadius: '980px',
+                          marginBottom: '0.625rem', fontFamily: FONT,
+                          border: '1px solid rgba(0,113,227,0.08)',
+                        }}>
                           {product.category}
                         </span>
                       )}
-                      <h3
-                        style={{
-                          fontSize: '1.0625rem',
-                          fontWeight: 600,
-                          color: C.text,
-                          margin: '0 0 0.375rem',
-                          letterSpacing: '-0.02em',
-                          lineHeight: 1.3,
-                          fontFamily: FONT_FAMILY,
-                        }}
-                      >
+                      <h3 style={{
+                        fontSize: '1.0625rem', fontWeight: 600, color: C.text,
+                        margin: '0 0 0.375rem', letterSpacing: '-0.02em',
+                        lineHeight: 1.3, fontFamily: FONT,
+                      }}>
                         {product.name}
                       </h3>
                       {product.reviewCount > 0 && (
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.375rem',
-                            marginBottom: '0.5rem',
-                          }}
-                        >
+                        <div style={{
+                          display: 'flex', alignItems: 'center',
+                          gap: '0.375rem', marginBottom: '0.5rem',
+                        }}>
                           <StarRating rating={product.averageRating} size={13} />
-                          <span style={{ fontSize: '0.75rem', color: C.muted, fontFamily: FONT_FAMILY }}>
+                          <span style={{ fontSize: '0.75rem', color: C.muted, fontFamily: FONT }}>
                             ({product.reviewCount})
                           </span>
                         </div>
                       )}
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                        }}
-                      >
-                        <p
-                          style={{
-                            fontSize: '1.0625rem',
-                            fontWeight: 600,
-                            color: C.text,
-                            margin: 0,
-                            fontFamily: FONT_FAMILY,
-                            letterSpacing: '-0.01em',
-                          }}
-                        >
+                      <div style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      }}>
+                        <p style={{
+                          fontSize: '1.0625rem', fontWeight: 600, color: C.text,
+                          margin: 0, fontFamily: FONT, letterSpacing: '-0.01em',
+                        }}>
                           {'₦'}{formatPrice(minPrice)}
                         </p>
-                        <span
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.25rem',
-                            fontSize: '0.8125rem',
-                            fontWeight: 500,
-                            color: C.blue,
-                            fontFamily: FONT_FAMILY,
-                            opacity: isHovered ? 1 : 0,
-                            transform: isHovered ? 'translateX(0)' : 'translateX(-6px)',
-                            transition: 'all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1)',
-                          }}
-                        >
-                          View
-                          <ArrowRight size={14} strokeWidth={2} />
+                        <span style={{
+                          display: 'flex', alignItems: 'center', gap: '0.25rem',
+                          fontSize: '0.8125rem', fontWeight: 500, color: C.blue,
+                          fontFamily: FONT,
+                          opacity: isHovered ? 1 : 0,
+                          transform: isHovered ? 'translateX(0)' : 'translateX(-6px)',
+                          transition: 'all 0.3s cubic-bezier(0.25,0.1,0.25,1)',
+                        }}>
+                          View <ArrowRight size={14} strokeWidth={2} />
                         </span>
                       </div>
                     </div>
@@ -474,119 +551,145 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Shop by Category ─────────────────────────────── */}
+      {/* ── WHY TECHMART ─────────────────────────────────── */}
+      <section ref={sectionRef3} style={{ background: '#ffffff' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '5rem 1.5rem 6rem' }}>
+          <div className="reveal" style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
+            <h2 style={{
+              fontSize: 'clamp(2rem, 4vw, 3rem)',
+              fontWeight: 700, letterSpacing: '-0.04em',
+              color: C.text, margin: '0 0 0.5rem',
+              fontFamily: FONT, lineHeight: 1.1,
+            }}>
+              Why TechMart?
+            </h2>
+            <p style={{
+              fontSize: '1.125rem', color: C.muted, margin: 0,
+              fontFamily: FONT, maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto',
+            }}>
+              We go the extra mile for every customer
+            </p>
+          </div>
+          <div className="benefits-grid" style={{
+            display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '1.5rem',
+          }}>
+            {benefits.map((b, i) => {
+              const Icon = b.icon;
+              const isHov = hoveredBenefit === i;
+              return (
+                <div
+                  key={b.title}
+                  className={`reveal delay-${i + 1}`}
+                  onMouseEnter={() => setHoveredBenefit(i)}
+                  onMouseLeave={() => setHoveredBenefit(null)}
+                  style={{
+                    textAlign: 'center', padding: '2.5rem 1.5rem',
+                    borderRadius: '20px',
+                    background: isHov ? C.bg : '#ffffff',
+                    border: `1px solid ${isHov ? 'transparent' : C.border}`,
+                    transition: 'all 0.4s cubic-bezier(0.25,0.1,0.25,1)',
+                    transform: isHov ? 'translateY(-6px)' : 'translateY(0)',
+                    boxShadow: isHov ? '0 16px 48px rgba(0,0,0,0.08)' : '0 1px 3px rgba(0,0,0,0.04)',
+                    cursor: 'default',
+                  }}
+                >
+                  <div style={{
+                    width: '64px', height: '64px', borderRadius: '50%',
+                    background: b.bg, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    margin: '0 auto 1.25rem',
+                    transition: 'transform 0.4s ease',
+                    transform: isHov ? 'scale(1.1)' : 'scale(1)',
+                  }}>
+                    <Icon size={28} color={b.color} strokeWidth={1.8} />
+                  </div>
+                  <h3 style={{
+                    fontSize: '1.125rem', fontWeight: 600, color: C.text,
+                    margin: '0 0 0.5rem', fontFamily: FONT, letterSpacing: '-0.02em',
+                  }}>
+                    {b.title}
+                  </h3>
+                  <p style={{
+                    fontSize: '0.9375rem', color: C.muted, margin: 0,
+                    fontFamily: FONT, lineHeight: 1.5,
+                  }}>
+                    {b.desc}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CATEGORIES ───────────────────────────────────── */}
       {categories.length > 0 && (
-        <section
-          style={{
-            background: '#1d1d1f',
-          }}
-        >
-          <div
-            style={{
-              maxWidth: '1200px',
-              margin: '0 auto',
-              padding: '5rem 1.5rem 6rem',
-            }}
-          >
-            <div style={{ marginBottom: '3rem' }}>
-              <h2
-                style={{
-                  fontSize: 'clamp(2rem, 4vw, 3rem)',
-                  fontWeight: 700,
-                  letterSpacing: '-0.04em',
-                  color: '#ffffff',
-                  margin: '0 0 0.375rem',
-                  fontFamily: FONT_FAMILY,
-                  lineHeight: 1.1,
-                }}
-              >
+        <section ref={sectionRef4} style={{ background: '#1d1d1f' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '5rem 1.5rem 6rem' }}>
+            <div className="reveal" style={{ marginBottom: '3rem' }}>
+              <h2 style={{
+                fontSize: 'clamp(2rem, 4vw, 3rem)',
+                fontWeight: 700, letterSpacing: '-0.04em',
+                color: '#ffffff', margin: '0 0 0.375rem',
+                fontFamily: FONT, lineHeight: 1.1,
+              }}>
                 Categories
               </h2>
-              <p
-                style={{
-                  fontSize: '1.0625rem',
-                  color: '#a1a1a6',
-                  margin: 0,
-                  fontWeight: 400,
-                  fontFamily: FONT_FAMILY,
-                }}
-              >
+              <p style={{
+                fontSize: '1.0625rem', color: '#a1a1a6', margin: 0, fontFamily: FONT,
+              }}>
                 Shop by what you need
               </p>
             </div>
-            <div
-              className="categories-grid"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-                gap: '1rem',
-              }}
-            >
-              {categories.map((cat) => {
+            <div className="categories-grid" style={{
+              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+              gap: '1rem',
+            }}>
+              {categories.map((cat, i) => {
                 const isHovered = hoveredCat === cat;
                 const count = categoryCounts[cat] || 0;
                 return (
                   <Link
                     key={cat}
                     href={`/products?category=${encodeURIComponent(cat)}`}
+                    className={`reveal delay-${(i % 4) + 1}`}
                     onMouseEnter={() => setHoveredCat(cat)}
                     onMouseLeave={() => setHoveredCat(null)}
                     style={{
                       textDecoration: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       padding: '1.5rem 1.75rem',
-                      background: isHovered
-                        ? 'rgba(0, 113, 227, 0.12)'
-                        : 'rgba(255, 255, 255, 0.06)',
+                      background: isHovered ? 'rgba(0,113,227,0.12)' : 'rgba(255,255,255,0.06)',
                       borderRadius: '16px',
-                      border: isHovered
-                        ? '1px solid rgba(0, 113, 227, 0.25)'
-                        : '1px solid rgba(255, 255, 255, 0.1)',
-                      transition: 'all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1)',
+                      border: isHovered ? '1px solid rgba(0,113,227,0.25)' : '1px solid rgba(255,255,255,0.1)',
+                      transition: 'all 0.4s cubic-bezier(0.25,0.1,0.25,1)',
                       transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
-                      boxShadow: isHovered
-                        ? '0 8px 32px rgba(0, 113, 227, 0.15)'
-                        : 'none',
+                      boxShadow: isHovered ? '0 8px 32px rgba(0,113,227,0.15)' : 'none',
                       backdropFilter: 'blur(12px)',
                       WebkitBackdropFilter: 'blur(12px)',
                     }}
                   >
                     <div>
-                      <span
-                        style={{
-                          display: 'block',
-                          fontSize: '1.125rem',
-                          fontWeight: 600,
-                          color: '#ffffff',
-                          letterSpacing: '-0.02em',
-                          fontFamily: FONT_FAMILY,
-                          marginBottom: '0.25rem',
-                        }}
-                      >
+                      <span style={{
+                        display: 'block', fontSize: '1.125rem', fontWeight: 600,
+                        color: '#ffffff', letterSpacing: '-0.02em',
+                        fontFamily: FONT, marginBottom: '0.25rem',
+                      }}>
                         {cat}
                       </span>
-                      <span
-                        style={{
-                          fontSize: '0.8125rem',
-                          color: '#a1a1a6',
-                          fontFamily: FONT_FAMILY,
-                          fontWeight: 400,
-                        }}
-                      >
+                      <span style={{
+                        fontSize: '0.8125rem', color: '#a1a1a6', fontFamily: FONT,
+                      }}>
                         {count} {count === 1 ? 'product' : 'products'}
                       </span>
                     </div>
-                    <ChevronRight
-                      size={18}
-                      style={{
-                        color: isHovered ? '#0071e3' : 'rgba(255, 255, 255, 0.4)',
-                        transition: 'all 0.3s ease',
-                        transform: isHovered ? 'translateX(3px)' : 'translateX(0)',
-                        flexShrink: 0,
-                      }}
-                    />
+                    <ChevronRight size={18} style={{
+                      color: isHovered ? '#0071e3' : 'rgba(255,255,255,0.4)',
+                      transition: 'all 0.3s ease',
+                      transform: isHovered ? 'translateX(3px)' : 'translateX(0)',
+                      flexShrink: 0,
+                    }} />
                   </Link>
                 );
               })}
@@ -595,207 +698,194 @@ export default function HomePage() {
         </section>
       )}
 
-      {false && <div style={{display:'none'}}
-      >
-        <div
-          style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-            padding: '3.5rem 1.5rem 2rem',
-          }}
-        >
-          {/* Footer columns */}
-          <div
-            className="footer-columns"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '2rem',
-              marginBottom: '3rem',
-            }}
-          >
-            {/* Shop */}
-            <div>
-              <h4
-                style={{
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                  color: '#a1a1a6',
-                  margin: '0 0 1rem',
-                  fontFamily: FONT_FAMILY,
-                }}
-              >
-                Shop
-              </h4>
-              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                <li>
-                  <Link
-                    href="/products"
-                    onMouseEnter={() => setHoveredFooterLink('products')}
-                    onMouseLeave={() => setHoveredFooterLink(null)}
-                    style={{
-                      textDecoration: 'none',
-                      fontSize: '0.875rem',
-                      fontFamily: FONT_FAMILY,
-                      color: hoveredFooterLink === 'products' ? '#ffffff' : 'rgba(255, 255, 255, 0.56)',
-                      transition: 'color 0.2s ease',
-                    }}
-                  >
-                    Products
-                  </Link>
-                </li>
-                {categories.slice(0, 4).map((cat) => (
-                  <li key={cat}>
-                    <Link
-                      href={`/products?category=${encodeURIComponent(cat)}`}
-                      onMouseEnter={() => setHoveredFooterLink(`cat-${cat}`)}
-                      onMouseLeave={() => setHoveredFooterLink(null)}
-                      style={{
-                        textDecoration: 'none',
-                        fontSize: '0.875rem',
-                        fontFamily: FONT_FAMILY,
-                        color: hoveredFooterLink === `cat-${cat}` ? '#ffffff' : 'rgba(255, 255, 255, 0.56)',
-                        transition: 'color 0.2s ease',
-                      }}
-                    >
-                      {cat}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+      {/* ── STATS SECTION ────────────────────────────────── */}
+      <section ref={sectionRef5} style={{
+        background: 'linear-gradient(180deg, #000000 0%, #1d1d1f 100%)',
+        padding: '5rem 1.5rem',
+      }}>
+        <div style={{
+          maxWidth: '1000px', margin: '0 auto',
+          display: 'flex', flexWrap: 'wrap',
+          gap: '2rem', justifyContent: 'center',
+        }} className="stats-row">
+          <StatItem value={1000} suffix="+" label="Products" />
+          <StatItem value={50000} suffix="+" label="Happy Customers" />
+          <StatItem value={99} suffix="%" label="Satisfaction" />
+          <StatItem value={24} suffix="/7" label="Support" />
+        </div>
+      </section>
 
-            {/* Account */}
-            <div>
-              <h4
-                style={{
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                  color: '#a1a1a6',
-                  margin: '0 0 1rem',
-                  fontFamily: FONT_FAMILY,
-                }}
-              >
-                Account
-              </h4>
-              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                {[
-                  { href: '/orders', label: 'Orders' },
-                  { href: '/wishlist', label: 'Wishlist' },
-                  ...(!session ? [{ href: '/auth/login', label: 'Sign In' }] : []),
-                ].map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      onMouseEnter={() => setHoveredFooterLink(item.label)}
-                      onMouseLeave={() => setHoveredFooterLink(null)}
-                      style={{
-                        textDecoration: 'none',
-                        fontSize: '0.875rem',
-                        fontFamily: FONT_FAMILY,
-                        color: hoveredFooterLink === item.label ? '#ffffff' : 'rgba(255, 255, 255, 0.56)',
-                        transition: 'color 0.2s ease',
-                      }}
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Support */}
-            <div>
-              <h4
-                style={{
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                  color: '#a1a1a6',
-                  margin: '0 0 1rem',
-                  fontFamily: FONT_FAMILY,
-                }}
-              >
-                Support
-              </h4>
-              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                {[
-                  { href: '/support', label: 'Contact' },
-                  { href: '/faq', label: 'FAQ' },
-                ].map((item) => (
-                  <li key={item.label}>
-                    <Link
-                      href={item.href}
-                      onMouseEnter={() => setHoveredFooterLink(`support-${item.label}`)}
-                      onMouseLeave={() => setHoveredFooterLink(null)}
-                      style={{
-                        textDecoration: 'none',
-                        fontSize: '0.875rem',
-                        fontFamily: FONT_FAMILY,
-                        color: hoveredFooterLink === `support-${item.label}` ? '#ffffff' : 'rgba(255, 255, 255, 0.56)',
-                        transition: 'color 0.2s ease',
-                      }}
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Bottom bar */}
-          <div
-            style={{
-              borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-              paddingTop: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <p
-              style={{
-                fontSize: '0.8125rem',
-                color: 'rgba(255, 255, 255, 0.36)',
-                margin: 0,
-                fontFamily: FONT_FAMILY,
-                fontWeight: 400,
-              }}
-            >
-              &copy; 2026 TechMart. All rights reserved.
+      {/* ── NEWSLETTER / CTA ─────────────────────────────── */}
+      {!session && <section ref={sectionRef6} style={{ background: C.bg, padding: '5rem 1.5rem 6rem' }}>
+        <div className="reveal" style={{
+          maxWidth: '720px', margin: '0 auto', textAlign: 'center',
+          padding: '3.5rem 2.5rem',
+          borderRadius: '28px',
+          background: 'linear-gradient(135deg, #1d1d1f 0%, #2d2d30 100%)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.15)',
+          position: 'relative', overflow: 'hidden',
+        }}>
+          {/* Subtle gradient glow */}
+          <div style={{
+            position: 'absolute', top: '-50%', right: '-30%',
+            width: '400px', height: '400px', borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(0,113,227,0.15) 0%, transparent 70%)',
+            filter: 'blur(60px)', pointerEvents: 'none',
+          }} />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <h2 style={{
+              fontSize: 'clamp(1.75rem, 4vw, 2.5rem)',
+              fontWeight: 700, letterSpacing: '-0.04em',
+              color: '#ffffff', margin: '0 0 0.75rem',
+              fontFamily: FONT,
+            }}>
+              Stay Updated
+            </h2>
+            <p style={{
+              fontSize: '1.0625rem', color: '#a1a1a6', margin: '0 0 2rem',
+              fontFamily: FONT, lineHeight: 1.5,
+            }}>
+              Get notified about new products and exclusive deals
             </p>
+            <form className="newsletter-form" onSubmit={async (e) => {
+              e.preventDefault();
+              if (!subscribeEmail.trim() || subscribing) return;
+              setSubscribing(true);
+              setSubscribeMsg('');
+              setSubscribeType('');
+              try {
+                const res = await fetch('/api/subscribe', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ email: subscribeEmail }),
+                });
+                const data = await res.json();
+                setSubscribeMsg(data.message || data.error || 'Subscribed!');
+                setSubscribeType(data.type || '');
+                if (res.ok && data.type === 'new_subscriber') setSubscribeEmail('');
+              } catch { setSubscribeMsg('Something went wrong'); }
+              finally { setSubscribing(false); }
+            }} style={{
+              display: 'flex', gap: '0.75rem',
+              maxWidth: '440px', margin: '0 auto',
+            }}>
+              <input
+                type="email"
+                placeholder="Enter your email"
+                value={subscribeEmail}
+                onChange={(e) => setSubscribeEmail(e.target.value)}
+                required
+                style={{
+                  flex: 1, padding: '0.875rem 1.25rem',
+                  borderRadius: '980px', border: '1px solid rgba(255,255,255,0.15)',
+                  background: 'rgba(255,255,255,0.08)',
+                  color: '#ffffff', fontSize: '0.9375rem',
+                  fontFamily: FONT, outline: 'none',
+                  transition: 'border-color 0.3s ease',
+                }}
+                onFocus={(e) => e.target.style.borderColor = 'rgba(0,113,227,0.5)'}
+                onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
+              />
+              <button
+                type="submit"
+                disabled={subscribing}
+                onMouseEnter={() => setSubscribeHover(true)}
+                onMouseLeave={() => setSubscribeHover(false)}
+                style={{
+                  padding: '0.875rem 1.75rem',
+                  borderRadius: '980px', border: 'none',
+                  background: subscribing ? '#555' : subscribeHover ? '#0077ED' : C.blue,
+                  color: '#ffffff', fontSize: '0.9375rem',
+                  fontWeight: 600, fontFamily: FONT,
+                  cursor: subscribing ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s ease',
+                  transform: subscribeHover && !subscribing ? 'scale(1.03)' : 'scale(1)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {subscribing ? 'Sending...' : 'Subscribe'}
+              </button>
+            </form>
+            {subscribeMsg && (
+              <div style={{ marginTop: '1.25rem', textAlign: 'center' }}>
+                <p style={{
+                  color: subscribeType === 'existing_customer' ? '#ff9f0a' : '#30d158',
+                  fontSize: '0.9375rem', fontFamily: FONT, margin: '0 0 0.75rem',
+                }}>
+                  {subscribeMsg}
+                </p>
+                {(subscribeType === 'new_subscriber' || subscribeType === 'already_subscribed') && (
+                  <Link href="/auth/register" style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                    padding: '0.75rem 1.75rem', background: '#ffffff', color: '#000',
+                    borderRadius: '980px', fontSize: '0.9375rem', fontWeight: 600,
+                    fontFamily: FONT, textDecoration: 'none',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                  }}>
+                    Create Account <ArrowRight size={16} />
+                  </Link>
+                )}
+                {subscribeType === 'existing_customer' && (
+                  <Link href="/auth/login" style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                    padding: '0.75rem 1.75rem', background: '#ffffff', color: '#000',
+                    borderRadius: '980px', fontSize: '0.9375rem', fontWeight: 600,
+                    fontFamily: FONT, textDecoration: 'none',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                  }}>
+                    Sign In <ArrowRight size={16} />
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
         </div>
-      </footer>
+      </section>}
 
-      {/* ── Global animations ─────────────────────────────── */}
+      {/* ── Global Styles ────────────────────────────────── */}
       <style>{`
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px); }
+        @keyframes heroFadeUp {
+          from { opacity: 0; transform: translateY(40px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes glowPulse {
+          0%, 100% { opacity: 0.5; transform: scale(1); }
+          50% { opacity: 0.8; transform: scale(1.08); }
+        }
+        @keyframes scrollLeft {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        @keyframes floatY {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-12px); }
         }
         @keyframes shimmer {
           0% { background-position: -200% 0; }
           100% { background-position: 200% 0; }
         }
-        @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
+        .reveal {
+          opacity: 0;
+          transform: translateY(40px);
+          transition: opacity 0.8s cubic-bezier(.16,1,.3,1), transform 0.8s cubic-bezier(.16,1,.3,1);
         }
-        @keyframes gradientShift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+        .reveal.visible {
+          opacity: 1;
+          transform: translateY(0);
         }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
+        .delay-1 { transition-delay: 0.1s; }
+        .delay-2 { transition-delay: 0.2s; }
+        .delay-3 { transition-delay: 0.3s; }
+        .delay-4 { transition-delay: 0.4s; }
+
+        @media (max-width: 1024px) {
+          .featured-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          .benefits-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
         }
         @media (max-width: 768px) {
           .featured-grid {
@@ -805,9 +895,15 @@ export default function HomePage() {
           .categories-grid {
             grid-template-columns: 1fr !important;
           }
-          .footer-columns {
+          .benefits-grid {
             grid-template-columns: 1fr !important;
-            gap: 1.5rem !important;
+          }
+          .stats-row {
+            flex-direction: column !important;
+            align-items: center !important;
+          }
+          .newsletter-form {
+            flex-direction: column !important;
           }
         }
         @media (max-width: 420px) {
