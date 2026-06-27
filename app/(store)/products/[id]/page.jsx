@@ -834,6 +834,15 @@ export default function ProductDetailPage({ params }) {
               >
                 Quantity
               </span>
+              <span
+                style={{
+                  fontSize: '0.8125rem',
+                  color: C.muted,
+                  fontWeight: 400,
+                }}
+              >
+                ({selectedVariant?.stock || 0} available)
+              </span>
               <div
                 style={{
                   display: 'inline-flex',

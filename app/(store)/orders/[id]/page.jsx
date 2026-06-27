@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/app/components/Toast';
-import { ArrowLeft, Package, MapPin, Calendar, Check } from 'lucide-react';
+import { ArrowLeft, Package, MapPin, Calendar, Check, AlertTriangle } from 'lucide-react';
 
 const C = {
   bg: '#f5f5f7', card: '#ffffff', border: '#e8e8ed',
@@ -45,6 +45,11 @@ export default function OrderDetailPage({ params }) {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [backHover, setBackHover] = useState(false);
+  const [dispute, setDispute] = useState(null);
+  const [showDisputeForm, setShowDisputeForm] = useState(false);
+  const [disputeReason, setDisputeReason] = useState('');
+  const [disputeDesc, setDisputeDesc] = useState('');
+  const [submittingDispute, setSubmittingDispute] = useState(false);
 
   useEffect(() => {
     if (authStatus === 'unauthenticated') {
@@ -65,6 +70,15 @@ export default function OrderDetailPage({ params }) {
           return;
         }
         setOrder(data.order);
+        // Fetch existing dispute for this order
+        try {
+          const dRes = await fetch('/api/disputes');
+          const dData = await dRes.json();
+          if (dRes.ok && dData.disputes) {
+            const existing = dData.disputes.find(d => d.orderId?._id === id || d.orderId === id);
+            if (existing) setDispute(existing);
+          }
+        } catch {}
       } catch (err) {
         showToast('Failed to load order');
         router.push('/orders');
@@ -75,6 +89,27 @@ export default function OrderDetailPage({ params }) {
 
     fetchOrder();
   }, [authStatus, id]);
+
+  const handleSubmitDispute = async () => {
+    if (!disputeReason) { showToast('Please select a reason'); return; }
+    setSubmittingDispute(true);
+    try {
+      const res = await fetch('/api/disputes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: id, reason: disputeReason, description: disputeDesc }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || 'Failed to submit dispute'); return; }
+      setDispute(data.dispute);
+      setShowDisputeForm(false);
+      showToast('Dispute submitted successfully', 'success');
+    } catch (err) {
+      showToast('Failed to submit dispute');
+    } finally {
+      setSubmittingDispute(false);
+    }
+  };
 
   if (authStatus === 'loading' || authStatus === 'unauthenticated') {
     return (
@@ -111,8 +146,12 @@ export default function OrderDetailPage({ params }) {
     );
   }
 
+  const STATUS_CONFIG_FULL = {
+    ...STATUS_CONFIG,
+    refunded: { bg: 'rgba(191,90,242,0.1)', color: '#bf5af2', label: 'Refunded' },
+  };
   const currentIndex = STATUS_FLOW.indexOf(order.status);
-  const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
+  const statusConfig = STATUS_CONFIG_FULL[order.status] || STATUS_CONFIG.pending;
   const subtotal = order.items?.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0) || 0;
   const deliveryFee = order.totalAmount - subtotal;
 
@@ -411,6 +450,133 @@ export default function OrderDetailPage({ params }) {
             )}
           </div>
         </div>
+        {/* Dispute Section */}
+        {order.status === 'delivered' && !dispute && (
+          <div style={{
+            background: C.card, borderRadius: '18px', border: `1px solid ${C.border}`,
+            padding: '1.5rem', marginTop: '1rem',
+          }}>
+            {!showDisputeForm ? (
+              <button
+                onClick={() => setShowDisputeForm(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  background: 'none', border: `1px solid ${C.red}`, borderRadius: '980px',
+                  padding: '0.625rem 1.25rem', color: C.red, fontSize: '0.9375rem',
+                  fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                <AlertTriangle size={16} />
+                Report Issue
+              </button>
+            ) : (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <AlertTriangle size={18} color={C.red} />
+                  <p style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: C.muted, margin: 0 }}>
+                    Report an Issue
+                  </p>
+                </div>
+                <select
+                  value={disputeReason}
+                  onChange={e => setDisputeReason(e.target.value)}
+                  style={{
+                    width: '100%', padding: '0.65rem 0.875rem', borderRadius: '10px',
+                    border: `1px solid ${C.inputBorder}`, background: C.card, color: C.text,
+                    fontSize: '0.9375rem', fontFamily: 'inherit', marginBottom: '0.75rem',
+                    outline: 'none', appearance: 'none', WebkitAppearance: 'none',
+                  }}
+                >
+                  <option value="">Select a reason...</option>
+                  <option value="ITEM_NOT_RECEIVED">Item Not Received</option>
+                  <option value="WRONG_ITEM">Wrong Item</option>
+                  <option value="ITEM_DAMAGED">Item Damaged</option>
+                  <option value="CHANGE_OF_MIND">Change of Mind</option>
+                </select>
+                <textarea
+                  value={disputeDesc}
+                  onChange={e => setDisputeDesc(e.target.value)}
+                  placeholder="Describe your issue in detail..."
+                  rows={4}
+                  style={{
+                    width: '100%', padding: '0.65rem 0.875rem', borderRadius: '10px',
+                    border: `1px solid ${C.inputBorder}`, background: C.card, color: C.text,
+                    fontSize: '0.9375rem', fontFamily: 'inherit', marginBottom: '0.75rem',
+                    outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+                  }}
+                />
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button
+                    onClick={handleSubmitDispute}
+                    disabled={submittingDispute}
+                    style={{
+                      background: submittingDispute ? C.muted : C.red, color: '#fff',
+                      border: 'none', borderRadius: '980px', padding: '0.625rem 1.5rem',
+                      fontSize: '0.9375rem', fontWeight: 500, cursor: submittingDispute ? 'not-allowed' : 'pointer',
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    {submittingDispute ? 'Submitting...' : 'Submit Dispute'}
+                  </button>
+                  <button
+                    onClick={() => { setShowDisputeForm(false); setDisputeReason(''); setDisputeDesc(''); }}
+                    style={{
+                      background: 'none', border: `1px solid ${C.border}`, borderRadius: '980px',
+                      padding: '0.625rem 1.5rem', color: C.muted, fontSize: '0.9375rem',
+                      fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Existing Dispute Status */}
+        {dispute && (
+          <div style={{
+            background: C.card, borderRadius: '18px', border: `1px solid ${C.border}`,
+            padding: '1.5rem', marginTop: '1rem',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <AlertTriangle size={18} color={C.orange} />
+              <p style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: C.muted, margin: 0 }}>
+                Dispute
+              </p>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <span style={{ fontSize: '0.875rem', color: C.muted }}>Reason: {dispute.reason?.replace(/_/g, ' ')}</span>
+              <span style={{
+                padding: '0.2rem 0.625rem', borderRadius: '980px', fontSize: '0.6875rem', fontWeight: 600,
+                background: dispute.status === 'OPEN' ? C.orangeBg : dispute.status === 'APPROVED' ? C.greenBg : C.redBg,
+                color: dispute.status === 'OPEN' ? C.orange : dispute.status === 'APPROVED' ? C.green : C.red,
+              }}>
+                {dispute.status}
+              </span>
+            </div>
+            {dispute.description && (
+              <p style={{ fontSize: '0.875rem', color: C.text, margin: '0 0 0.5rem', lineHeight: 1.5 }}>{dispute.description}</p>
+            )}
+            {dispute.adminNote && (
+              <div style={{ background: C.bg, borderRadius: '10px', padding: '0.75rem', marginTop: '0.5rem' }}>
+                <p style={{ fontSize: '0.75rem', fontWeight: 600, color: C.muted, margin: '0 0 0.25rem' }}>Admin Response</p>
+                <p style={{ fontSize: '0.875rem', color: C.text, margin: 0, lineHeight: 1.5 }}>{dispute.adminNote}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Refunded status banner */}
+        {order.status === 'refunded' && (
+          <div style={{
+            background: 'rgba(191,90,242,0.08)', borderRadius: '12px', padding: '0.75rem 1rem',
+            marginTop: '1rem', textAlign: 'center', fontSize: '0.875rem', color: '#bf5af2', fontWeight: 500,
+          }}>
+            This order has been refunded
+          </div>
+        )}
       </div>
 
       <style>{`

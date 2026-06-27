@@ -35,6 +35,7 @@ export async function POST(req) {
           await sendOrderConfirmationEmail(customer.email, {
             orderNumber: order.orderNumber,
             total: order.totalAmount,
+            items: order.items,
             deliveryWindow: {
               earliest: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
               latest: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),

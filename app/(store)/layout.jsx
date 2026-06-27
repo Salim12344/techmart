@@ -2,6 +2,7 @@
 
 import Navbar from '@/app/components/Navbar';
 import Footer from '@/app/components/Footer';
+import BackToTop from '@/app/components/BackToTop';
 
 export default function StoreLayout({ children }) {
   return (
@@ -11,6 +12,7 @@ export default function StoreLayout({ children }) {
         {children}
       </main>
       <Footer />
+      <BackToTop />
     </>
   );
 }

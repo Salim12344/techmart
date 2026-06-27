@@ -253,45 +253,6 @@ export default function CheckoutPage() {
           </h1>
         </div>
 
-        {/* Step Indicator */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '0.5rem',
-          marginBottom: '2.5rem', padding: '1rem 1.5rem',
-          background: C.card, borderRadius: 16,
-          boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-        }}>
-          {STEPS.map((step, i) => (
-            <div key={step.num} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                opacity: step.num === 1 ? 1 : 0.4,
-              }}>
-                <div style={{
-                  width: 28, height: 28, borderRadius: '50%',
-                  background: step.num === 1 ? C.blue : '#e8e8ed',
-                  color: step.num === 1 ? '#fff' : C.muted,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '0.75rem', fontWeight: 700,
-                  transition: 'all 0.3s ease',
-                }}>
-                  {step.num}
-                </div>
-                <span style={{
-                  fontSize: '0.875rem', fontWeight: step.num === 1 ? 600 : 400,
-                  color: step.num === 1 ? C.text : C.muted,
-                }}>
-                  {step.label}
-                </span>
-              </div>
-              {i < STEPS.length - 1 && (
-                <div style={{
-                  width: 40, height: 1, background: C.border,
-                  margin: '0 0.25rem',
-                }} />
-              )}
-            </div>
-          ))}
-        </div>
 
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'flex', gap: '2.5rem', alignItems: 'flex-start' }} className="checkout-layout">

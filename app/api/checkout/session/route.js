@@ -1,5 +1,6 @@
 import { connectDB } from '@/lib/db';
 import Order from '@/models/order';
+import Product from '@/models/product';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
@@ -15,6 +16,27 @@ export async function POST(req) {
 
     if (!items || items.length === 0) {
       return Response.json({ error: 'Cart is empty' }, { status: 400 });
+    }
+
+    // Validate stock for each item
+    for (const item of items) {
+      const product = await Product.findById(item.productId);
+      if (!product) {
+        return Response.json({ error: `Product "${item.productName}" not found` }, { status: 400 });
+      }
+      const variant = product.variants.find(
+        v => v.color === item.color && v.storage === item.storage
+      );
+      if (!variant) {
+        return Response.json({
+          error: `Variant ${item.color}/${item.storage} for "${item.productName}" not found`,
+        }, { status: 400 });
+      }
+      if (variant.stock < item.quantity) {
+        return Response.json({
+          error: `Only ${variant.stock} units of "${item.productName}" (${item.color}/${item.storage}) available. You requested ${item.quantity}.`,
+        }, { status: 400 });
+      }
     }
 
     const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
@@ -59,6 +81,8 @@ export async function POST(req) {
 
     if (!paystackData.status) {
       await Order.findByIdAndDelete(order._id);
+      const keyPreview = process.env.PAYSTACK_SECRET_KEY ? `${process.env.PAYSTACK_SECRET_KEY.slice(0, 8)}...` : 'NOT SET';
+      console.error('Paystack error:', paystackData.message, 'Key preview:', keyPreview);
       return Response.json({ error: paystackData.message || 'Payment initialization failed' }, { status: 400 });
     }
 
