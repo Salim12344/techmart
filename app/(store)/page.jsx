@@ -134,6 +134,7 @@ export default function HomePage() {
   const [secondaryHover, setSecondaryHover] = useState(false);
   const [hoveredBenefit, setHoveredBenefit] = useState(null);
   const [subscribeHover, setSubscribeHover] = useState(false);
+  const [siteStats, setSiteStats] = useState(null);
   const [subscribeEmail, setSubscribeEmail] = useState('');
   const [subscribing, setSubscribing] = useState(false);
   const [subscribeMsg, setSubscribeMsg] = useState('');
@@ -154,6 +155,10 @@ export default function HomePage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+    fetch('/api/stats')
+      .then((r) => r.json())
+      .then((data) => { if (!data.error) setSiteStats(data); })
+      .catch(() => {});
   }, []);
 
   const featured = products.slice(0, 8);
@@ -708,10 +713,10 @@ export default function HomePage() {
           display: 'flex', flexWrap: 'wrap',
           gap: '2rem', justifyContent: 'center',
         }} className="stats-row">
-          <StatItem value={1000} suffix="+" label="Products" />
-          <StatItem value={50000} suffix="+" label="Happy Customers" />
-          <StatItem value={99} suffix="%" label="Satisfaction" />
-          <StatItem value={24} suffix="/7" label="Support" />
+          <StatItem value={siteStats?.totalProducts || 0} suffix="" label="Products" />
+          <StatItem value={siteStats?.totalCustomers || 0} suffix="" label="Registered Customers" />
+          <StatItem value={siteStats?.deliveredOrders || 0} suffix="" label="Orders Delivered" />
+          <StatItem value={siteStats?.satisfactionPercent || 0} suffix="%" label={`Satisfaction${siteStats?.totalReviews ? ` (${siteStats.totalReviews} reviews)` : ''}`} />
         </div>
       </section>
 
