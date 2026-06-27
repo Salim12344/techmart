@@ -415,13 +415,10 @@ function ProductsContent() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.75rem',
-            marginBottom: '2.5rem',
-            flexWrap: 'nowrap',
-            overflowX: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'none',
-            paddingBottom: '4px',
+            gap: '0.5rem',
+            marginBottom: '2rem',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
           }}
         >
           {/* Category Pills */}
@@ -429,13 +426,8 @@ function ProductsContent() {
             style={{
               display: 'flex',
               gap: '0.5rem',
-              flexWrap: 'nowrap',
-              overflowX: 'auto',
-              WebkitOverflowScrolling: 'touch',
-              flex: 1,
-              minWidth: 0,
-              paddingBottom: '4px',
-              scrollbarWidth: 'none',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
             }}
           >
             {allCategories.map((cat) => {
@@ -1198,7 +1190,6 @@ function ProductsContent() {
             gap: 0.75rem !important;
           }
         }
-        *::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   );
