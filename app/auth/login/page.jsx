@@ -73,6 +73,11 @@ function LoginContent() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.bg, padding: '1rem' }}>
       <div style={{ width: '100%', maxWidth: '400px' }}>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: C.blue, textDecoration: 'none', fontSize: '0.875rem', fontWeight: 500 }}>
+            ← Back to store
+          </Link>
+        </div>
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.03em', color: C.text, margin: '0 0 0.375rem' }}>TechMart</h1>
           <p style={{ color: C.muted, fontSize: '0.9375rem', margin: 0 }}>Sign in to your account</p>

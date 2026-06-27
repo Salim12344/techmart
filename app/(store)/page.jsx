@@ -595,12 +595,7 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* ── Footer ───────────────────────────────────────── */}
-      <footer
-        style={{
-          background: '#1d1d1f',
-          borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-        }}
+      {false && <div style={{display:'none'}}
       >
         <div
           style={{
