@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 const RefundSchema = new mongoose.Schema({
   orderId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Order',
+    ref: 'order',
     required: true,
   },
   disputeId: {

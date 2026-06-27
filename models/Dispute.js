@@ -5,7 +5,7 @@ const DisputeSchema = new mongoose.Schema({
   orderNumber: String,
   orderId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Order',
+    ref: 'order',
     required: true,
   },
   userId: {
