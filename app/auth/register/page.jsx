@@ -233,7 +233,7 @@ export default function RegisterPage() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: C.text, marginBottom: '0.5rem' }}>Phone Number</label>
-                <input style={inputStyle} type="tel" placeholder="08012345678" value={form.phone} onChange={e => handleFormChange('phone', e.target.value)} required {...focusHandlers} />
+                <input style={inputStyle} type="tel" maxLength={11} placeholder="08012345678" value={form.phone} onChange={e => handleFormChange('phone', e.target.value)} required {...focusHandlers} />
               </div>
 
               <div>

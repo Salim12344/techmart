@@ -197,7 +197,7 @@ export default function AccountPage() {
             </div>
             <div>
               <label style={labelStyle}>Phone Number</label>
-              <input style={inputStyle} type="tel" placeholder="08012345678" value={profileForm.phone}
+              <input style={inputStyle} type="tel" maxLength={11} placeholder="08012345678" value={profileForm.phone}
                 onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} {...focusHandlers} />
             </div>
             <div style={{ display: 'flex', gap: '0.75rem' }}>

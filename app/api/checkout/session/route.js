@@ -4,6 +4,12 @@ import Product from '@/models/product';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
+function getBaseUrl(req) {
+  const host = req.headers.get('host');
+  const proto = req.headers.get('x-forwarded-proto') || 'https';
+  return `${proto}://${host}`;
+}
+
 export async function POST(req) {
   try {
     const session = await getServerSession(authOptions);
@@ -65,7 +71,7 @@ export async function POST(req) {
         amount: Math.round(totalAmount * 100),
         currency: 'NGN',
         reference: orderNumber,
-        callback_url: `${process.env.NEXTAUTH_URL}/checkout/success?reference=${orderNumber}`,
+        callback_url: `${getBaseUrl(req)}/checkout/success?reference=${orderNumber}`,
         metadata: {
           orderId: order._id.toString(),
           orderNumber,

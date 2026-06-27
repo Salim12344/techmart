@@ -145,6 +145,7 @@ export default function CheckoutPage() {
     const newErrors = {};
     if (!form.fullName.trim()) newErrors.fullName = 'Full name is required';
     if (!form.phone.trim()) newErrors.phone = 'Phone number is required';
+    else if (form.phone.replace(/\D/g, '').length !== 11) newErrors.phone = 'Phone number must be 11 digits';
     if (!form.street.trim()) newErrors.street = 'Street address is required';
     if (!form.city.trim()) newErrors.city = 'City is required';
     if (!form.state) newErrors.state = 'Please select a state';
@@ -319,6 +320,7 @@ export default function CheckoutPage() {
                       id="phone"
                       name="phone"
                       type="tel"
+                      maxLength={11}
                       value={form.phone}
                       onChange={handleChange}
                       onFocus={() => setFocusedField('phone')}
