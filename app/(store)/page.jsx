@@ -56,10 +56,18 @@ function useScrollReveal() {
           }
         });
       },
-      { threshold: 0.15 }
+      { threshold: 0.05, rootMargin: '0px 0px -20px 0px' }
     );
-    const targets = el.querySelectorAll('.reveal');
-    targets.forEach((t) => observer.observe(t));
+    const targets = el.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale');
+    targets.forEach((t) => {
+      // If element is already in viewport on load, reveal immediately
+      const rect = t.getBoundingClientRect();
+      if (rect.top < window.innerHeight) {
+        t.classList.add('visible');
+      } else {
+        observer.observe(t);
+      }
+    });
     return () => observer.disconnect();
   }, []);
   return ref;
@@ -299,7 +307,7 @@ export default function HomePage() {
         </div>
 
         {/* Product Image Slider */}
-        {featured.length > 0 && (
+        {featured.filter(p => p.image).length > 0 && (
           <div style={{
             overflow: 'hidden', width: '100%', marginTop: '4rem',
             position: 'relative', zIndex: 1,
@@ -312,7 +320,7 @@ export default function HomePage() {
               animation: 'scrollLeft 30s linear infinite',
               width: 'fit-content',
             }}>
-              {[...featured, ...featured].map((product, i) => (
+              {[...featured.filter(p => p.image), ...featured.filter(p => p.image)].map((product, i) => (
                 <Link
                   key={`${product._id}-${i}`}
                   href={`/products/${product._id}`}
@@ -375,7 +383,7 @@ export default function HomePage() {
       {/* ── FEATURED PRODUCTS ────────────────────────────── */}
       <section ref={sectionRef2} style={{ background: C.bg }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '5rem 1.5rem 6rem' }}>
-          <div className="reveal" style={{
+          <div style={{
             display: 'flex', alignItems: 'flex-end',
             justifyContent: 'space-between', marginBottom: '3rem', flexWrap: 'wrap', gap: '1rem',
           }}>
@@ -435,118 +443,64 @@ export default function HomePage() {
           ) : (
             <div className="featured-grid" style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '1.5rem',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: '1.25rem',
             }}>
-              {featured.map((product, index) => {
-                const minPrice = getMinPrice(product.variants);
+              {featured.filter(p => p.image).map((product) => {
                 const isHovered = hoveredCard === product._id;
                 return (
                   <Link
                     key={product._id}
                     href={`/products/${product._id}`}
-                    className={`reveal delay-${(index % 4) + 1}`}
                     onMouseEnter={() => setHoveredCard(product._id)}
                     onMouseLeave={() => setHoveredCard(null)}
                     style={{
-                      textDecoration: 'none', color: 'inherit',
-                      background: '#ffffff', borderRadius: '20px',
-                      border: isHovered ? '1px solid transparent' : '1px solid rgba(0,0,0,0.06)',
-                      overflow: 'hidden',
-                      transition: 'all 0.4s cubic-bezier(0.25,0.1,0.25,1)',
-                      transform: isHovered ? 'translateY(-8px)' : 'translateY(0)',
-                      boxShadow: isHovered
-                        ? '0 20px 60px rgba(0,0,0,0.12)'
-                        : '0 1px 4px rgba(0,0,0,0.04)',
+                      textDecoration: 'none',
+                      display: 'block',
                       position: 'relative',
+                      borderRadius: '20px',
+                      overflow: 'hidden',
+                      background: '#ffffff',
+                      transition: 'all 0.4s cubic-bezier(0.25,0.1,0.25,1)',
+                      transform: isHovered ? 'translateY(-6px)' : 'translateY(0)',
+                      boxShadow: isHovered
+                        ? '0 16px 48px rgba(0,0,0,0.12)'
+                        : '0 1px 4px rgba(0,0,0,0.06)',
                     }}
                   >
                     <div style={{
-                      position: 'relative', width: '100%', aspectRatio: '1',
-                      background: 'linear-gradient(180deg, #fafafa 0%, #f0f0f0 100%)',
+                      width: '100%', aspectRatio: '1',
+                      background: '#fafafa',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       overflow: 'hidden',
                     }}>
-                      {product.image ? (
-                        <Image
-                          src={product.image} alt={product.name}
-                          width={300} height={300}
-                          style={{
-                            objectFit: 'contain', padding: '2rem',
-                            transition: 'transform 0.5s cubic-bezier(0.25,0.1,0.25,1)',
-                            transform: isHovered ? 'scale(1.08)' : 'scale(1)',
-                          }}
-                        />
-                      ) : (
-                        <div style={{
-                          width: '100%', height: '100%',
-                          background: 'linear-gradient(135deg, #f5f5f7 0%, #e8e8ed 50%, #f5f5f7 100%)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                          <div style={{
-                            width: '60px', height: '60px', borderRadius: '16px',
-                            background: 'rgba(0,0,0,0.03)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          }}>
-                            <div style={{
-                              width: '28px', height: '28px', borderRadius: '50%',
-                              background: 'linear-gradient(135deg, #d2d2d7, #e8e8ed)',
-                            }} />
-                          </div>
-                        </div>
-                      )}
+                      <Image
+                        src={product.image} alt={product.name}
+                        width={280} height={280}
+                        style={{
+                          objectFit: 'contain', padding: '1.5rem',
+                          transition: 'transform 0.5s cubic-bezier(0.25,0.1,0.25,1)',
+                          transform: isHovered ? 'scale(1.06)' : 'scale(1)',
+                        }}
+                      />
                     </div>
-                    <div style={{ padding: '1.125rem 1.375rem 1.375rem' }}>
-                      {product.category && (
-                        <span style={{
-                          display: 'inline-block', fontSize: '0.6875rem', fontWeight: 600,
-                          textTransform: 'uppercase', letterSpacing: '0.05em',
-                          color: C.blue, background: 'rgba(0,113,227,0.06)',
-                          padding: '0.25rem 0.75rem', borderRadius: '980px',
-                          marginBottom: '0.625rem', fontFamily: FONT,
-                          border: '1px solid rgba(0,113,227,0.08)',
-                        }}>
-                          {product.category}
-                        </span>
-                      )}
-                      <h3 style={{
-                        fontSize: '1.0625rem', fontWeight: 600, color: C.text,
-                        margin: '0 0 0.375rem', letterSpacing: '-0.02em',
-                        lineHeight: 1.3, fontFamily: FONT,
+                    <div style={{
+                      padding: '0.875rem 1rem',
+                      textAlign: 'center',
+                    }}>
+                      <p style={{
+                        fontSize: '0.875rem', fontWeight: 600, color: C.text,
+                        margin: '0 0 0.125rem', fontFamily: FONT, letterSpacing: '-0.01em',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
                         {product.name}
-                      </h3>
-                      {product.reviewCount > 0 && (
-                        <div style={{
-                          display: 'flex', alignItems: 'center',
-                          gap: '0.375rem', marginBottom: '0.5rem',
-                        }}>
-                          <StarRating rating={product.averageRating} size={13} />
-                          <span style={{ fontSize: '0.75rem', color: C.muted, fontFamily: FONT }}>
-                            ({product.reviewCount})
-                          </span>
-                        </div>
-                      )}
-                      <div style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      </p>
+                      <p style={{
+                        fontSize: '0.8125rem', fontWeight: 500, color: C.muted,
+                        margin: 0, fontFamily: FONT,
                       }}>
-                        <p style={{
-                          fontSize: '1.0625rem', fontWeight: 600, color: C.text,
-                          margin: 0, fontFamily: FONT, letterSpacing: '-0.01em',
-                        }}>
-                          {'₦'}{formatPrice(minPrice)}
-                        </p>
-                        <span style={{
-                          display: 'flex', alignItems: 'center', gap: '0.25rem',
-                          fontSize: '0.8125rem', fontWeight: 500, color: C.blue,
-                          fontFamily: FONT,
-                          opacity: isHovered ? 1 : 0,
-                          transform: isHovered ? 'translateX(0)' : 'translateX(-6px)',
-                          transition: 'all 0.3s cubic-bezier(0.25,0.1,0.25,1)',
-                        }}>
-                          View <ArrowRight size={14} strokeWidth={2} />
-                        </span>
-                      </div>
+                        From {'₦'}{formatPrice(getMinPrice(product.variants))}
+                      </p>
                     </div>
                   </Link>
                 );
@@ -559,7 +513,7 @@ export default function HomePage() {
       {/* ── WHY TECHMART ─────────────────────────────────── */}
       <section ref={sectionRef3} style={{ background: '#ffffff' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '5rem 1.5rem 6rem' }}>
-          <div className="reveal" style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
+          <div className="reveal-scale" style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
             <h2 style={{
               fontSize: 'clamp(2rem, 4vw, 3rem)',
               fontWeight: 700, letterSpacing: '-0.04em',
@@ -585,7 +539,7 @@ export default function HomePage() {
               return (
                 <div
                   key={b.title}
-                  className={`reveal delay-${i + 1}`}
+                  className={`reveal-scale delay-${i + 1}`}
                   onMouseEnter={() => setHoveredBenefit(i)}
                   onMouseLeave={() => setHoveredBenefit(null)}
                   style={{
@@ -632,7 +586,7 @@ export default function HomePage() {
       {categories.length > 0 && (
         <section ref={sectionRef4} style={{ background: '#1d1d1f' }}>
           <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '5rem 1.5rem 6rem' }}>
-            <div className="reveal" style={{ marginBottom: '3rem' }}>
+            <div className="reveal-right" style={{ marginBottom: '3rem' }}>
               <h2 style={{
                 fontSize: 'clamp(2rem, 4vw, 3rem)',
                 fontWeight: 700, letterSpacing: '-0.04em',
@@ -722,7 +676,7 @@ export default function HomePage() {
 
       {/* ── NEWSLETTER / CTA ─────────────────────────────── */}
       {!session && <section ref={sectionRef6} style={{ background: C.bg, padding: '5rem 1.5rem 6rem' }}>
-        <div className="reveal" style={{
+        <div className="reveal-scale" style={{
           maxWidth: '720px', margin: '0 auto', textAlign: 'center',
           padding: '3.5rem 2.5rem',
           borderRadius: '28px',
@@ -872,17 +826,46 @@ export default function HomePage() {
         }
         .reveal {
           opacity: 0;
-          transform: translateY(40px);
-          transition: opacity 0.8s cubic-bezier(.16,1,.3,1), transform 0.8s cubic-bezier(.16,1,.3,1);
+          transform: translateY(32px);
+          transition: opacity 1s cubic-bezier(0.25, 0.1, 0.25, 1), transform 1s cubic-bezier(0.25, 0.1, 0.25, 1);
         }
         .reveal.visible {
           opacity: 1;
-          transform: translateY(0);
+          transform: translateY(0) scale(1) translateX(0);
         }
-        .delay-1 { transition-delay: 0.1s; }
-        .delay-2 { transition-delay: 0.2s; }
-        .delay-3 { transition-delay: 0.3s; }
-        .delay-4 { transition-delay: 0.4s; }
+        .reveal-left {
+          opacity: 0;
+          transform: translateX(-40px);
+          transition: opacity 1s cubic-bezier(0.25, 0.1, 0.25, 1), transform 1s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+        .reveal-left.visible {
+          opacity: 1;
+          transform: translateX(0);
+        }
+        .reveal-right {
+          opacity: 0;
+          transform: translateX(40px);
+          transition: opacity 1s cubic-bezier(0.25, 0.1, 0.25, 1), transform 1s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+        .reveal-right.visible {
+          opacity: 1;
+          transform: translateX(0);
+        }
+        .reveal-scale {
+          opacity: 0;
+          transform: scale(0.92);
+          transition: opacity 1.1s cubic-bezier(0.25, 0.1, 0.25, 1), transform 1.1s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+        .reveal-scale.visible {
+          opacity: 1;
+          transform: scale(1);
+        }
+        .delay-1 { transition-delay: 0.08s; }
+        .delay-2 { transition-delay: 0.16s; }
+        .delay-3 { transition-delay: 0.24s; }
+        .delay-4 { transition-delay: 0.32s; }
+        .delay-5 { transition-delay: 0.4s; }
+        .delay-6 { transition-delay: 0.48s; }
 
         @media (max-width: 1024px) {
           .featured-grid {

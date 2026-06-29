@@ -1043,9 +1043,9 @@ function ProductsContent() {
                         cursor: totalStock === 0 && !cartProductIds.has(product._id) ? 'not-allowed' : 'pointer',
                         fontFamily: 'inherit',
                         transition: 'all 0.35s cubic-bezier(0.25, 0.1, 0.25, 1)',
-                        opacity: isHovered || cartProductIds.has(product._id) ? 1 : 0,
-                        transform: isHovered || cartProductIds.has(product._id) ? 'translateY(0)' : 'translateY(6px)',
-                        pointerEvents: isHovered || cartProductIds.has(product._id) ? 'auto' : 'none',
+                        opacity: 1,
+                        transform: 'translateY(0)',
+                        pointerEvents: 'auto',
                       }}
                     >
                       <ShoppingBag size={14} />

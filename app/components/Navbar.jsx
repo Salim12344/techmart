@@ -14,6 +14,8 @@ import {
   Package,
   LogOut,
   ChevronDown,
+  Home,
+  LayoutGrid,
 } from 'lucide-react';
 
 const C = {
@@ -148,6 +150,19 @@ export default function Navbar() {
     }
   }
 
+  const mobileTabs = [
+    { href: '/', label: 'Home', icon: Home },
+    { href: '/products', label: 'Products', icon: LayoutGrid },
+    { href: '/cart', label: 'Cart', icon: ShoppingBag },
+    { href: '/wishlist', label: 'Wishlist', icon: Heart },
+    { href: '/account', label: 'Account', icon: User },
+  ];
+
+  function isTabActive(href) {
+    if (href === '/') return pathname === '/';
+    return pathname === href || pathname.startsWith(href + '/');
+  }
+
   return (
     <>
       <nav
@@ -178,7 +193,7 @@ export default function Navbar() {
           className="navbar-inner"
           style={{
             padding: '0 2.5rem',
-            height: '48px',
+            height: '52px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -275,7 +290,7 @@ export default function Navbar() {
           {/* Spacer */}
           <div style={{ flex: 1 }} />
 
-          {/* Always-visible icons: Wishlist + Cart (visible on both mobile and desktop) */}
+          {/* Always-visible icons: Wishlist + Cart (desktop only now) */}
           <div
             style={{
               display: 'flex',
@@ -293,8 +308,8 @@ export default function Navbar() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: '34px',
-                height: '34px',
+                width: '36px',
+                height: '36px',
                 borderRadius: '50%',
                 background: hoveredIcon === 'wishlist' ? 'rgba(0, 0, 0, 0.05)' : 'transparent',
                 color: C.text,
@@ -315,8 +330,8 @@ export default function Navbar() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: '34px',
-                height: '34px',
+                width: '36px',
+                height: '36px',
                 borderRadius: '50%',
                 background: hoveredIcon === 'cart' ? 'rgba(0, 0, 0, 0.05)' : 'transparent',
                 color: C.text,
@@ -373,8 +388,8 @@ export default function Navbar() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: '34px',
-                height: '34px',
+                width: '36px',
+                height: '36px',
                 borderRadius: '50%',
                 background: hoveredIcon === 'search' ? 'rgba(0, 0, 0, 0.05)' : 'transparent',
                 color: C.text,
@@ -398,9 +413,9 @@ export default function Navbar() {
                   justifyContent: 'center',
                   gap: '3px',
                   width: 'auto',
-                  height: '34px',
+                  height: '36px',
                   padding: '0 8px',
-                  borderRadius: '17px',
+                  borderRadius: '18px',
                   background: hoveredIcon === 'user' ? 'rgba(0, 0, 0, 0.05)' : 'transparent',
                   color: C.text,
                   border: 'none',
@@ -632,15 +647,15 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* Mobile: Hamburger */}
+          {/* Mobile: Hamburger (kept but hidden via CSS) */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             style={{
               display: 'none',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '34px',
-              height: '34px',
+              width: '36px',
+              height: '36px',
               borderRadius: '50%',
               background: 'transparent',
               border: 'none',
@@ -661,364 +676,87 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* ── Mobile Full-Screen Overlay ──────────────────────── */}
-      {mobileOpen && (
-        <div
-          className="navbar-mobile-overlay"
-          style={{
-            display: 'none',
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 999,
-            background: 'rgba(255, 255, 255, 0.97)',
-            backdropFilter: 'saturate(180%) blur(40px)',
-            WebkitBackdropFilter: 'saturate(180%) blur(40px)',
-            fontFamily: FONT_FAMILY,
-            animation: 'navMobileOverlayIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-            overflowY: 'auto',
-          }}
-        >
-          {/* Mobile overlay header */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0 1.5rem',
-              height: '48px',
-              borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
-            }}
-          >
-            <Link href="/" onClick={() => setMobileOpen(false)} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: 'linear-gradient(135deg, #0071e3 0%, #5856d6 100%)' }} />
-              <span style={{ fontSize: '1.125rem', fontWeight: 600, fontFamily: FONT_FAMILY, color: C.text, letterSpacing: '-0.03em' }}>TechMart</span>
-            </Link>
-            <button
-              onClick={() => setMobileOpen(false)}
+      {/* Mobile Bottom Tab Bar */}
+      <div className="navbar-mobile-tabbar" style={{
+        display: 'none',
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1000,
+        background: 'rgba(255,255,255,0.92)',
+        backdropFilter: 'saturate(180%) blur(20px)',
+        WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+        borderTop: '1px solid rgba(0,0,0,0.06)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0)',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        height: '64px',
+      }}>
+        {mobileTabs.map((tab) => {
+          const active = isTabActive(tab.href);
+          const TabIcon = tab.icon;
+          return (
+            <Link
+              key={tab.href}
+              href={tab.href}
               style={{
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: '34px',
-                height: '34px',
-                borderRadius: '50%',
-                background: 'rgba(0, 0, 0, 0.04)',
-                border: 'none',
-                color: C.text,
-                cursor: 'pointer',
+                textDecoration: 'none',
+                color: active ? C.blue : C.muted,
+                gap: active ? '2px' : '0',
+                padding: '6px 0',
+                minWidth: '48px',
+                position: 'relative',
+                transition: 'color 0.2s ease',
               }}
             >
-              <X size={18} strokeWidth={1.6} />
-            </button>
-          </div>
-
-          {/* Mobile nav content */}
-          <div style={{ padding: '2rem 1.5rem' }}>
-            {/* Nav Links */}
-            {navLinks.map((link, idx) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileOpen(false)}
-                style={{
-                  display: 'block',
-                  padding: '1.25rem 0',
-                  textDecoration: 'none',
-                  fontSize: '1.75rem',
-                  fontWeight: isActive(link.href) ? 700 : 500,
-                  fontFamily: FONT_FAMILY,
-                  color: isActive(link.href) ? C.text : '#424245',
-                  letterSpacing: '-0.03em',
-                  borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
-                  animation: `navMobileLinkIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 0.05}s both`,
-                }}
-              >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                  {link.label}
-                  {link.label === 'Support' && supportUnread > 0 && (
-                    <span
-                      style={{
-                        minWidth: '20px',
-                        height: '20px',
-                        borderRadius: '10px',
-                        background: C.red,
-                        color: '#ffffff',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        fontFamily: FONT_FAMILY,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '0 5px',
-                        lineHeight: 1,
-                        boxShadow: '0 1px 4px rgba(255,69,58,0.4)',
-                      }}
-                    >
-                      {supportUnread > 99 ? '99+' : supportUnread}
-                    </span>
-                  )}
-                </span>
-              </Link>
-            ))}
-
-            {/* Mobile Icons Row */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.625rem',
-                padding: '1.5rem 0',
-                borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
-                animation: 'navMobileLinkIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both',
-              }}
-            >
-              <Link
-                href="/products"
-                onClick={() => setMobileOpen(false)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '10px 18px',
-                  borderRadius: '980px',
-                  background: 'rgba(0, 0, 0, 0.04)',
-                  textDecoration: 'none',
-                  color: C.text,
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  fontFamily: FONT_FAMILY,
-                }}
-              >
-                <Search size={15} strokeWidth={1.6} />
-                Search
-              </Link>
-              <Link
-                href="/wishlist"
-                onClick={() => setMobileOpen(false)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '10px 18px',
-                  borderRadius: '980px',
-                  background: 'rgba(0, 0, 0, 0.04)',
-                  textDecoration: 'none',
-                  color: C.text,
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  fontFamily: FONT_FAMILY,
-                }}
-              >
-                <Heart size={15} strokeWidth={1.6} />
-                Wishlist
-              </Link>
-              <Link
-                href="/cart"
-                onClick={() => setMobileOpen(false)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '10px 18px',
-                  borderRadius: '980px',
-                  background: 'rgba(0, 0, 0, 0.04)',
-                  textDecoration: 'none',
-                  color: C.text,
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  fontFamily: FONT_FAMILY,
-                  position: 'relative',
-                }}
-              >
-                <ShoppingBag size={15} strokeWidth={1.6} />
-                Cart
-                {cartCount > 0 && (
+              <span style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <TabIcon size={24} strokeWidth={active ? 1.8 : 1.5} />
+                {tab.label === 'Cart' && cartCount > 0 && (
                   <span
                     style={{
-                      minWidth: '18px',
-                      height: '18px',
-                      borderRadius: '9px',
+                      position: 'absolute',
+                      top: '-4px',
+                      right: '-8px',
+                      minWidth: '16px',
+                      height: '16px',
+                      borderRadius: '8px',
                       background: C.blue,
                       color: '#ffffff',
-                      fontSize: '0.6875rem',
+                      fontSize: '0.5625rem',
                       fontWeight: 700,
                       fontFamily: FONT_FAMILY,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      padding: '0 5px',
+                      padding: '0 3px',
+                      lineHeight: 1,
                       boxShadow: '0 1px 4px rgba(0,113,227,0.4)',
                     }}
                   >
                     {cartCount > 99 ? '99+' : cartCount}
                   </span>
                 )}
-              </Link>
-            </div>
-
-            {/* Mobile User Section */}
-            <div style={{ paddingTop: '1.5rem', animation: 'navMobileLinkIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both' }}>
-              {status === 'authenticated' && session?.user ? (
-                <>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      marginBottom: '1.5rem',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #0071e3 0%, #5856d6 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#ffffff',
-                        fontSize: '0.9375rem',
-                        fontWeight: 600,
-                        fontFamily: FONT_FAMILY,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {session.user.name?.[0]?.toUpperCase() || 'U'}
-                    </div>
-                    <div>
-                      <p
-                        style={{
-                          fontSize: '1rem',
-                          fontWeight: 600,
-                          color: C.text,
-                          margin: 0,
-                          fontFamily: FONT_FAMILY,
-                        }}
-                      >
-                        {session.user.name || 'User'}
-                      </p>
-                      <p
-                        style={{
-                          fontSize: '0.8125rem',
-                          color: C.muted,
-                          margin: '2px 0 0',
-                          fontFamily: FONT_FAMILY,
-                        }}
-                      >
-                        {session.user.email || ''}
-                      </p>
-                    </div>
-                  </div>
-                  <Link
-                    href="/account"
-                    onClick={() => setMobileOpen(false)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      padding: '12px 0',
-                      textDecoration: 'none',
-                      color: C.text,
-                      fontSize: '1.0625rem',
-                      fontWeight: 500,
-                      fontFamily: FONT_FAMILY,
-                    }}
-                  >
-                    <User size={18} strokeWidth={1.6} color={C.muted} />
-                    My Account
-                  </Link>
-                  <Link
-                    href="/orders"
-                    onClick={() => setMobileOpen(false)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      padding: '12px 0',
-                      textDecoration: 'none',
-                      color: C.text,
-                      fontSize: '1.0625rem',
-                      fontWeight: 500,
-                      fontFamily: FONT_FAMILY,
-                    }}
-                  >
-                    <Package size={18} strokeWidth={1.6} color={C.muted} />
-                    Orders
-                  </Link>
-                  <button
-                    onClick={handleSignOut}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      width: '100%',
-                      padding: '12px 0',
-                      marginTop: '0.5rem',
-                      background: 'transparent',
-                      border: 'none',
-                      color: C.red,
-                      fontSize: '1.0625rem',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      fontFamily: FONT_FAMILY,
-                      textAlign: 'left',
-                    }}
-                  >
-                    <LogOut size={18} strokeWidth={1.6} />
-                    Sign Out
-                  </button>
-                </>
-              ) : (
-                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                  <Link
-                    href="/auth/login"
-                    onClick={() => setMobileOpen(false)}
-                    style={{
-                      flex: 1,
-                      display: 'block',
-                      padding: '14px',
-                      borderRadius: '14px',
-                      background: 'rgba(0, 0, 0, 0.04)',
-                      textDecoration: 'none',
-                      color: C.text,
-                      fontSize: '1rem',
-                      fontWeight: 600,
-                      fontFamily: FONT_FAMILY,
-                      textAlign: 'center',
-                    }}
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    href="/auth/register"
-                    onClick={() => setMobileOpen(false)}
-                    style={{
-                      flex: 1,
-                      display: 'block',
-                      padding: '14px',
-                      borderRadius: '14px',
-                      background: C.blue,
-                      textDecoration: 'none',
-                      color: '#ffffff',
-                      fontSize: '1rem',
-                      fontWeight: 600,
-                      fontFamily: FONT_FAMILY,
-                      textAlign: 'center',
-                      boxShadow: '0 2px 12px rgba(0,113,227,0.3)',
-                    }}
-                  >
-                    Register
-                  </Link>
-                </div>
+              </span>
+              {active && (
+                <span style={{
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  fontFamily: FONT_FAMILY,
+                  letterSpacing: '0.01em',
+                  lineHeight: 1,
+                }}>
+                  {tab.label}
+                </span>
               )}
-            </div>
-          </div>
-        </div>
-      )}
+            </Link>
+          );
+        })}
+      </div>
 
       {/* Responsive styles and animations */}
       <style>{`
@@ -1026,23 +764,17 @@ export default function Navbar() {
           from { opacity: 0; transform: translateY(-6px) scale(0.97); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
-        @keyframes navMobileOverlayIn {
-          from { opacity: 0; transform: translateX(8px); }
-          to   { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes navMobileLinkIn {
-          from { opacity: 0; transform: translateY(12px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
         @media (max-width: 768px) {
-          .navbar-inner { padding: 0 1rem !important; }
+          .navbar-inner { padding: 0 1rem !important; justify-content: center !important; }
           .navbar-desktop-links { display: none !important; }
           .navbar-desktop-icons { display: none !important; }
-          .navbar-always-icons { display: flex !important; }
-          .navbar-mobile-toggle { display: flex !important; }
-          .navbar-mobile-overlay { display: block !important; }
+          .navbar-always-icons { display: none !important; }
+          .navbar-mobile-toggle { display: none !important; }
+          .navbar-mobile-overlay { display: none !important; }
+          .navbar-mobile-tabbar { display: flex !important; }
         }
         @media (min-width: 769px) {
+          .navbar-mobile-tabbar { display: none !important; }
           .navbar-mobile-toggle { display: none !important; }
           .navbar-mobile-overlay { display: none !important; }
         }

@@ -8,11 +8,16 @@ export default function StoreLayout({ children }) {
   return (
     <>
       <Navbar />
-      <main style={{ minHeight: '100vh', background: '#f5f5f7' }}>
+      <main className="store-main" style={{ minHeight: '100vh', background: '#f5f5f7' }}>
         {children}
       </main>
       <Footer />
       <BackToTop />
+      <style>{`
+        @media (max-width: 768px) {
+          .store-main { padding-bottom: 80px !important; }
+        }
+      `}</style>
     </>
   );
 }
