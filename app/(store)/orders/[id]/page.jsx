@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/app/components/Toast';
-import { ArrowLeft, Package, MapPin, Calendar, Check, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Package, MapPin, Calendar, Check, AlertTriangle, XCircle } from 'lucide-react';
 
 const C = {
   bg: '#f5f5f7', card: '#ffffff', border: '#e8e8ed',
@@ -50,6 +50,7 @@ export default function OrderDetailPage({ params }) {
   const [disputeReason, setDisputeReason] = useState('');
   const [disputeDesc, setDisputeDesc] = useState('');
   const [submittingDispute, setSubmittingDispute] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     if (authStatus === 'unauthenticated') {
@@ -111,6 +112,22 @@ export default function OrderDetailPage({ params }) {
     }
   };
 
+  const handleCancelOrder = async () => {
+    if (!confirm('Are you sure you want to cancel this order? You will receive a refund.')) return;
+    setCancelling(true);
+    try {
+      const res = await fetch(`/api/orders/${id}/cancel`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || 'Failed to cancel order'); return; }
+      setOrder(data.order);
+      showToast('Order cancelled successfully. Refund is being processed.', 'success');
+    } catch (err) {
+      showToast('Failed to cancel order');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   if (authStatus === 'loading' || authStatus === 'unauthenticated') {
     return (
       <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -149,6 +166,7 @@ export default function OrderDetailPage({ params }) {
   const STATUS_CONFIG_FULL = {
     ...STATUS_CONFIG,
     refunded: { bg: 'rgba(191,90,242,0.1)', color: '#bf5af2', label: 'Refunded' },
+    cancelled: { bg: C.redBg, color: C.red, label: 'Cancelled' },
   };
   const currentIndex = STATUS_FLOW.indexOf(order.status);
   const statusConfig = STATUS_CONFIG_FULL[order.status] || STATUS_CONFIG.pending;
@@ -261,6 +279,39 @@ export default function OrderDetailPage({ params }) {
             })}
           </div>
         </div>
+
+        {/* Cancel Order Button */}
+        {['pending', 'confirmed'].includes(order.status) && (
+          <div style={{
+            background: C.card, borderRadius: '18px', border: `1px solid ${C.border}`,
+            padding: '1.5rem', marginBottom: '1rem',
+          }}>
+            <button
+              onClick={handleCancelOrder}
+              disabled={cancelling}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                background: 'none', border: `1px solid ${C.red}`, borderRadius: '980px',
+                padding: '0.625rem 1.25rem', color: C.red, fontSize: '0.9375rem',
+                fontWeight: 500, cursor: cancelling ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit', opacity: cancelling ? 0.6 : 1,
+              }}
+            >
+              <XCircle size={16} />
+              {cancelling ? 'Cancelling...' : 'Cancel Order'}
+            </button>
+          </div>
+        )}
+
+        {/* Cancelled status banner */}
+        {order.status === 'cancelled' && (
+          <div style={{
+            background: C.redBg, borderRadius: '12px', padding: '0.75rem 1rem',
+            marginBottom: '1rem', textAlign: 'center', fontSize: '0.875rem', color: C.red, fontWeight: 500,
+          }}>
+            This order has been cancelled. A refund is being processed.
+          </div>
+        )}
 
         {/* Items */}
         <div style={{

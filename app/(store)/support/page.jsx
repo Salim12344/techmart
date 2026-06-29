@@ -102,10 +102,24 @@ function SupportContent() {
 
   if (authStatus === 'loading' || loading) {
     return (
-      <div style={{ padding: '3rem', textAlign: 'center', color: C.muted }}>
-        <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid #e8e8ed', borderTopColor: '#0071e3', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }} />
-        <p>Loading...</p>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1rem' }}>
+        <div style={{ marginBottom: '2rem' }}>
+          <div style={{ width: '200px', height: '28px', background: '#e8e8ed', borderRadius: '8px', marginBottom: '0.5rem', animation: 'pulse 1.5s ease-in-out infinite' }} />
+          <div style={{ width: '140px', height: '16px', background: '#e8e8ed', borderRadius: '6px', animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '0.1s' }} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {[1, 2, 3].map(i => (
+            <div key={i} style={{
+              background: '#ffffff', borderRadius: '14px', padding: '1.125rem 1.25rem',
+              border: '1px solid #e8e8ed',
+            }}>
+              <div style={{ height: 16, width: '60%', background: '#e8e8ed', borderRadius: 8, marginBottom: '0.75rem', animation: 'pulse 1.5s ease-in-out infinite' }} />
+              <div style={{ height: 12, width: '40%', background: '#e8e8ed', borderRadius: 8, marginBottom: '0.5rem', animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '0.1s' }} />
+              <div style={{ height: 10, width: '25%', background: '#e8e8ed', borderRadius: 6, animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '0.2s' }} />
+            </div>
+          ))}
+        </div>
+        <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
       </div>
     );
   }
@@ -220,16 +234,35 @@ function SupportContent() {
       {/* Tickets List */}
       {tickets.length === 0 ? (
         <div style={{
-          background: C.card, borderRadius: '18px', border: `1px solid ${C.border}`,
-          padding: '3rem', textAlign: 'center',
+          textAlign: 'center', padding: '4rem 1.5rem',
+          background: C.card, borderRadius: 20,
+          border: `1px solid ${C.border}`,
         }}>
-          <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
-            <MessageSquare size={28} color={C.muted} />
+          <div style={{
+            width: 64, height: 64, borderRadius: '50%',
+            background: 'rgba(0,113,227,0.06)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 1.25rem',
+          }}>
+            <MessageSquare size={28} color="#0071e3" />
           </div>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: C.text, margin: '0 0 0.5rem' }}>No tickets yet</h3>
-          <p style={{ color: C.muted, fontSize: '0.875rem', margin: 0, maxWidth: '320px', marginLeft: 'auto', marginRight: 'auto' }}>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: C.text, margin: '0 0 0.5rem' }}>
+            No tickets yet
+          </h3>
+          <p style={{ color: C.muted, fontSize: '0.9375rem', margin: '0 0 1.5rem', maxWidth: 360, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.5 }}>
             When you need help, create a support ticket and our team will get back to you as soon as possible.
           </p>
+          <button
+            onClick={() => setShowForm(true)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+              padding: '0.75rem 1.5rem', background: C.blue, color: '#fff',
+              borderRadius: '980px', fontSize: '0.9375rem', fontWeight: 500,
+              border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            <Plus size={16} /> Create a Ticket
+          </button>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -300,7 +333,21 @@ function SupportContent() {
 
 export default function SupportPage() {
   return (
-    <Suspense fallback={<div style={{ padding: '3rem', textAlign: 'center', color: '#86868b' }}>Loading...</div>}>
+    <Suspense fallback={
+      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1rem' }}>
+        <div style={{ marginBottom: '2rem' }}>
+          <div style={{ width: '200px', height: '28px', background: '#e8e8ed', borderRadius: '8px', marginBottom: '0.5rem', animation: 'pulse 1.5s ease-in-out infinite' }} />
+          <div style={{ width: '140px', height: '16px', background: '#e8e8ed', borderRadius: '6px', animation: 'pulse 1.5s ease-in-out infinite' }} />
+        </div>
+        {[1, 2, 3].map(i => (
+          <div key={i} style={{ background: '#ffffff', borderRadius: '14px', padding: '1.125rem 1.25rem', border: '1px solid #e8e8ed', marginBottom: '0.75rem' }}>
+            <div style={{ height: 16, width: '60%', background: '#e8e8ed', borderRadius: 8, marginBottom: '0.75rem', animation: 'pulse 1.5s ease-in-out infinite' }} />
+            <div style={{ height: 12, width: '40%', background: '#e8e8ed', borderRadius: 8, animation: 'pulse 1.5s ease-in-out infinite' }} />
+          </div>
+        ))}
+        <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
+      </div>
+    }>
       <SupportContent />
     </Suspense>
   );

@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { MapPin, CreditCard, ArrowLeft, Truck, Lock, ShoppingBag, Check } from 'lucide-react';
+import { MapPin, CreditCard, ArrowLeft, Truck, Lock, ShoppingBag, Check, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '@/app/components/Toast';
 
 const C = {
@@ -46,6 +46,11 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [focusedField, setFocusedField] = useState(null);
+  const [couponOpen, setCouponOpen] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState('');
 
   const [form, setForm] = useState({
     fullName: '',
@@ -141,6 +146,30 @@ export default function CheckoutPage() {
     }
   }
 
+  async function handleApplyCoupon() {
+    if (!couponCode.trim()) { setCouponError('Please enter a coupon code'); return; }
+    setCouponLoading(true);
+    setCouponError('');
+    try {
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: couponCode.trim() }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setAppliedCoupon({ code: data.code, discountPercent: data.discountPercent });
+        showToast(`Coupon applied! ${data.discountPercent}% off`, 'success');
+      } else {
+        setCouponError(data.error || 'Invalid coupon');
+      }
+    } catch {
+      setCouponError('Failed to validate coupon');
+    } finally {
+      setCouponLoading(false);
+    }
+  }
+
   function validate() {
     const newErrors = {};
     if (!form.fullName.trim()) newErrors.fullName = 'Full name is required';
@@ -181,6 +210,7 @@ export default function CheckoutPage() {
           state: form.state,
           country: form.country,
         },
+        ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}),
       };
 
       const res = await fetch('/api/checkout/session', {
@@ -227,8 +257,9 @@ export default function CheckoutPage() {
   }
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const discountAmount = appliedCoupon ? Math.round(subtotal * appliedCoupon.discountPercent / 100) : 0;
   const deliveryFee = subtotal > FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
-  const total = subtotal + deliveryFee;
+  const total = subtotal - discountAmount + deliveryFee;
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
@@ -557,6 +588,92 @@ export default function CheckoutPage() {
                     <span style={{ fontSize: '0.9375rem', fontWeight: 500, color: C.text }}>
                       {formatPrice(deliveryFee)}
                     </span>
+                  )}
+                </div>
+
+                {/* Discount line */}
+                {appliedCoupon && (
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between',
+                    alignItems: 'center', marginBottom: '0.75rem',
+                  }}>
+                    <span style={{ fontSize: '0.9375rem', color: C.green, display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      <Tag size={14} strokeWidth={1.8} />
+                      Discount ({appliedCoupon.discountPercent}%)
+                    </span>
+                    <span style={{ fontSize: '0.9375rem', fontWeight: 500, color: C.green }}>
+                      -{formatPrice(discountAmount)}
+                    </span>
+                  </div>
+                )}
+
+                {/* Coupon Section */}
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setCouponOpen(!couponOpen)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.375rem',
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      fontSize: '0.875rem', color: C.blue, fontWeight: 500,
+                      fontFamily: 'inherit', padding: 0,
+                    }}
+                  >
+                    <Tag size={14} />
+                    Have a coupon?
+                    {couponOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </button>
+                  {couponOpen && !appliedCoupon && (
+                    <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        type="text"
+                        value={couponCode}
+                        onChange={(e) => { setCouponCode(e.target.value); setCouponError(''); }}
+                        placeholder="Enter code"
+                        style={{
+                          flex: 1, padding: '0.5rem 0.75rem', borderRadius: 10,
+                          border: `1.5px solid ${couponError ? C.red : C.inputBorder}`,
+                          fontSize: '0.875rem', fontFamily: 'inherit', outline: 'none',
+                          color: C.text, textTransform: 'uppercase',
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleApplyCoupon}
+                        disabled={couponLoading}
+                        style={{
+                          padding: '0.5rem 1rem', borderRadius: 10,
+                          background: couponLoading ? C.muted : C.blue, color: '#fff',
+                          border: 'none', fontSize: '0.875rem', fontWeight: 500,
+                          cursor: couponLoading ? 'not-allowed' : 'pointer',
+                          fontFamily: 'inherit', whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {couponLoading ? '...' : 'Apply'}
+                      </button>
+                    </div>
+                  )}
+                  {couponError && (
+                    <p style={{ fontSize: '0.75rem', color: C.red, margin: '0.375rem 0 0', fontWeight: 500 }}>
+                      {couponError}
+                    </p>
+                  )}
+                  {appliedCoupon && couponOpen && (
+                    <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '0.8125rem', color: C.green, fontWeight: 500 }}>
+                        {appliedCoupon.code} applied
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => { setAppliedCoupon(null); setCouponCode(''); setCouponError(''); }}
+                        style={{
+                          background: 'none', border: 'none', color: C.red,
+                          fontSize: '0.8125rem', cursor: 'pointer', fontFamily: 'inherit',
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
                   )}
                 </div>
 

@@ -72,8 +72,26 @@ export default function OrdersPage() {
 
   if (authStatus === 'loading' || authStatus === 'unauthenticated') {
     return (
-      <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: C.muted, fontSize: '1rem' }}>Loading...</p>
+      <div style={{ minHeight: '100vh', background: C.bg }}>
+        <div className="orders-container" style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1.5rem 4rem' }}>
+          <div style={{ marginBottom: '2rem' }}>
+            <div style={{ width: '180px', height: '28px', background: '#e8e8ed', borderRadius: '8px', marginBottom: '0.5rem', animation: 'pulse 1.5s ease-in-out infinite' }} />
+            <div style={{ width: '160px', height: '16px', background: '#e8e8ed', borderRadius: '6px', animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '0.1s' }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{
+                background: C.card, borderRadius: '18px', border: `1px solid ${C.border}`,
+                padding: '1.25rem 1.5rem',
+              }}>
+                <div style={{ height: 16, width: '50%', background: '#e8e8ed', borderRadius: 8, marginBottom: '0.75rem', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                <div style={{ height: 12, width: '70%', background: '#e8e8ed', borderRadius: 8, marginBottom: '0.5rem', animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '0.1s' }} />
+                <div style={{ height: 12, width: '35%', background: '#e8e8ed', borderRadius: 8, animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '0.2s' }} />
+              </div>
+            ))}
+          </div>
+        </div>
+        <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
       </div>
     );
   }

@@ -52,8 +52,21 @@ export default function DisputesPage() {
 
   if (authStatus === 'loading' || authStatus === 'unauthenticated') {
     return (
-      <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: C.muted }}>Loading...</p>
+      <div style={{ minHeight: '100vh', background: C.bg }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1.5rem 4rem' }}>
+          <div style={{ width: '120px', height: '16px', background: '#e8e8ed', borderRadius: '6px', marginBottom: '1.5rem', animation: 'pulse 1.5s ease-in-out infinite' }} />
+          <div style={{ width: '200px', height: '28px', background: '#e8e8ed', borderRadius: '8px', marginBottom: '0.5rem', animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '0.1s' }} />
+          <div style={{ width: '80px', height: '16px', background: '#e8e8ed', borderRadius: '6px', marginBottom: '1.5rem', animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '0.15s' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {[1, 2].map(i => (
+              <div key={i} style={{ background: C.card, borderRadius: '18px', border: `1px solid ${C.border}`, padding: '1.25rem 1.5rem' }}>
+                <div style={{ height: 16, width: '50%', background: '#e8e8ed', borderRadius: 8, marginBottom: '0.75rem', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                <div style={{ height: 12, width: '30%', background: '#e8e8ed', borderRadius: 8, animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '0.1s' }} />
+              </div>
+            ))}
+          </div>
+        </div>
+        <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
       </div>
     );
   }
@@ -78,11 +91,49 @@ export default function DisputesPage() {
         </p>
 
         {loading ? (
-          <div style={{ background: C.card, borderRadius: '18px', border: `1px solid ${C.border}`, height: '200px', animation: 'pulse 1.5s ease-in-out infinite' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{
+                background: C.card, borderRadius: '18px', border: `1px solid ${C.border}`,
+                padding: '1.25rem 1.5rem',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <div style={{ height: 16, width: '45%', background: '#e8e8ed', borderRadius: 8, animation: 'pulse 1.5s ease-in-out infinite' }} />
+                  <div style={{ height: 16, width: '15%', background: '#e8e8ed', borderRadius: 8, animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '0.1s' }} />
+                </div>
+                <div style={{ height: 12, width: '35%', background: '#e8e8ed', borderRadius: 8, marginBottom: '0.5rem', animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '0.15s' }} />
+                <div style={{ height: 10, width: '25%', background: '#e8e8ed', borderRadius: 6, animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '0.2s' }} />
+              </div>
+            ))}
+          </div>
         ) : disputes.length === 0 ? (
-          <div style={{ background: C.card, borderRadius: '18px', border: `1px solid ${C.border}`, padding: '3rem', textAlign: 'center' }}>
-            <AlertTriangle size={32} color={C.muted} style={{ marginBottom: '0.75rem' }} />
-            <p style={{ color: C.muted, fontSize: '0.9375rem' }}>No disputes found</p>
+          <div style={{
+            textAlign: 'center', padding: '4rem 1.5rem',
+            background: C.card, borderRadius: 20,
+            border: `1px solid ${C.border}`,
+          }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: '50%',
+              background: 'rgba(0,113,227,0.06)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 1.25rem',
+            }}>
+              <AlertTriangle size={28} color="#0071e3" />
+            </div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: C.text, margin: '0 0 0.5rem' }}>
+              No disputes found
+            </h3>
+            <p style={{ color: C.muted, fontSize: '0.9375rem', margin: '0 0 1.5rem', maxWidth: 360, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.5 }}>
+              You haven't filed any disputes. If you have an issue with an order, you can open a dispute from the order details page.
+            </p>
+            <Link href="/orders" style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+              padding: '0.75rem 1.5rem', background: C.blue, color: '#fff',
+              borderRadius: '980px', fontSize: '0.9375rem', fontWeight: 500,
+              textDecoration: 'none',
+            }}>
+              View Orders
+            </Link>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>

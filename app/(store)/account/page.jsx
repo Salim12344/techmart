@@ -121,8 +121,45 @@ export default function AccountPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div style={{ maxWidth: 800, margin: '0 auto', padding: '3rem 1.5rem', textAlign: 'center', color: C.muted }}>
-        Loading...
+      <div style={{ maxWidth: 800, margin: '0 auto', padding: '2rem 1.5rem 4rem' }}>
+        <div style={{ marginBottom: '2rem' }}>
+          <div style={{ width: '140px', height: '28px', background: '#e8e8ed', borderRadius: '8px', animation: 'pulse 1.5s ease-in-out infinite' }} />
+        </div>
+        {/* Profile skeleton */}
+        <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.border}`, padding: '2rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#e8e8ed', flexShrink: 0, animation: 'pulse 1.5s ease-in-out infinite' }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ height: 20, width: '40%', background: '#e8e8ed', borderRadius: 8, marginBottom: '0.5rem', animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '0.1s' }} />
+              <div style={{ height: 14, width: '55%', background: '#e8e8ed', borderRadius: 6, animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '0.2s' }} />
+            </div>
+          </div>
+        </div>
+        {/* Password skeleton */}
+        <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.border}`, padding: '1.5rem 2rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: '#e8e8ed', flexShrink: 0, animation: 'pulse 1.5s ease-in-out infinite' }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ height: 16, width: '25%', background: '#e8e8ed', borderRadius: 8, marginBottom: '0.375rem', animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '0.1s' }} />
+              <div style={{ height: 12, width: '50%', background: '#e8e8ed', borderRadius: 6, animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '0.2s' }} />
+            </div>
+          </div>
+        </div>
+        {/* Quick links skeleton */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
+          {[1, 2].map(i => (
+            <div key={i} style={{ background: C.card, borderRadius: 16, border: `1px solid ${C.border}`, padding: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#e8e8ed', flexShrink: 0, animation: 'pulse 1.5s ease-in-out infinite' }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ height: 14, width: '60%', background: '#e8e8ed', borderRadius: 6, marginBottom: '0.375rem', animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '0.1s' }} />
+                  <div style={{ height: 10, width: '80%', background: '#e8e8ed', borderRadius: 6, animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '0.2s' }} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
       </div>
     );
   }

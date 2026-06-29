@@ -22,6 +22,7 @@ const STATUS_STYLES = {
   confirmed: { bg: C.purpleBg, color: C.purple },
   shipped:   { bg: 'rgba(0,113,227,0.1)', color: C.blue },
   delivered: { bg: C.greenBg, color: C.green },
+  cancelled: { bg: C.redBg, color: C.red },
 };
 
 const STATUS_FLOW = ['pending', 'confirmed', 'shipped', 'delivered'];
@@ -114,7 +115,7 @@ export default function AdminOrdersPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
         {/* Status tabs */}
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {['all', 'pending', 'confirmed', 'shipped', 'delivered'].map(s => (
+          {['all', 'pending', 'confirmed', 'shipped', 'delivered', 'cancelled'].map(s => (
             <button key={s} onClick={() => setFilterStatus(s)}
               style={{ padding: '0.375rem 0.875rem', borderRadius: '980px', fontSize: '0.8125rem', fontWeight: 500, border: `1px solid ${filterStatus === s ? C.blue : C.border}`, background: filterStatus === s ? C.blue : C.card, color: filterStatus === s ? '#fff' : C.text, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
               {s === 'all' ? `All (${orders.length})` : `${s.charAt(0).toUpperCase() + s.slice(1)} (${orders.filter(o => o.status === s).length})`}

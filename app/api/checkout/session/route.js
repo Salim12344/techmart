@@ -1,6 +1,7 @@
 import { connectDB } from '@/lib/db';
 import Order from '@/models/order';
 import Product from '@/models/product';
+import Coupon from '@/models/Coupon';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
@@ -18,7 +19,7 @@ export async function POST(req) {
     }
 
     await connectDB();
-    const { items, shippingAddress } = await req.json();
+    const { items, shippingAddress, couponCode } = await req.json();
 
     if (!items || items.length === 0) {
       return Response.json({ error: 'Cart is empty' }, { status: 400 });
@@ -47,7 +48,25 @@ export async function POST(req) {
 
     const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
     const deliveryFee = subtotal > 500000 ? 0 : 3500;
-    const totalAmount = subtotal + deliveryFee;
+
+    let discountAmount = 0;
+    let validatedCouponCode = null;
+
+    if (couponCode) {
+      const coupon = await Coupon.findOne({ code: couponCode.toUpperCase() });
+      if (!coupon || !coupon.isActive || new Date() > new Date(coupon.expiresAt) || coupon.usedCount >= coupon.maxUses) {
+        return Response.json({ error: 'Invalid or expired coupon' }, { status: 400 });
+      }
+      if (coupon.discountPercent > 10) {
+        return Response.json({ error: 'Invalid coupon discount' }, { status: 400 });
+      }
+      discountAmount = Math.round(subtotal * coupon.discountPercent / 100);
+      validatedCouponCode = coupon.code;
+      coupon.usedCount += 1;
+      await coupon.save();
+    }
+
+    const totalAmount = subtotal - discountAmount + deliveryFee;
     const orderNumber = 'TM-' + Date.now();
 
     const order = await Order.create({
@@ -56,6 +75,7 @@ export async function POST(req) {
       items,
       shippingAddress,
       totalAmount,
+      couponCode: validatedCouponCode,
       status: 'pending',
       paymentReference: 'pending',
     });
