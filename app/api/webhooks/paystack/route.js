@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { connectDB } from '@/lib/db';
 import Order from '@/models/order';
+import Product from '@/models/product';
 import { sendOrderConfirmationEmail } from '@/lib/email';
 
 export async function POST(req) {
@@ -25,10 +26,20 @@ export async function POST(req) {
       await connectDB();
 
       const order = await Order.findOneAndUpdate(
-        { paymentReference: reference },
-        { status: 'confirmed' },
+        { paymentReference: reference, status: 'pending' },
+        { status: 'confirmed', confirmedAt: new Date() },
         { new: true }
       );
+
+      if (order) {
+        // Deduct stock for each item
+        for (const item of order.items) {
+          await Product.updateOne(
+            { _id: item.productId, 'variants.color': item.color, 'variants.storage': item.storage },
+            { $inc: { 'variants.$.stock': -item.quantity } }
+          );
+        }
+      }
 
       if (order && customer?.email) {
         try {

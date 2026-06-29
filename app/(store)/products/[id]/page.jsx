@@ -8,7 +8,7 @@ import { useSession } from 'next-auth/react';
 import { useToast } from '@/app/components/Toast';
 import {
   Star, Heart, ShoppingBag, Plus, Minus,
-  ChevronRight, Shield, Truck, Package, Send,
+  ChevronRight, Shield, Truck, Package, Send, ArrowLeft,
 } from 'lucide-react';
 
 const C = {
@@ -216,6 +216,7 @@ export default function ProductDetailPage({ params }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [hoveredAddCart, setHoveredAddCart] = useState(false);
   const [hoveredWishlist, setHoveredWishlist] = useState(false);
+  const [isInCart, setIsInCart] = useState(false);
 
   // Review form state
   const { data: session, status: authStatus } = useSession();
@@ -282,6 +283,23 @@ export default function ProductDetailPage({ params }) {
   useEffect(() => {
     setQuantity(1);
   }, [selectedColor, selectedStorage]);
+
+  // Check if product is in cart
+  useEffect(() => {
+    function syncCartStatus() {
+      try {
+        const cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
+        setIsInCart(cart.some(item => item.productId === id));
+      } catch { setIsInCart(false); }
+    }
+    syncCartStatus();
+    window.addEventListener('cart-updated', syncCartStatus);
+    window.addEventListener('storage', syncCartStatus);
+    return () => {
+      window.removeEventListener('cart-updated', syncCartStatus);
+      window.removeEventListener('storage', syncCartStatus);
+    };
+  }, [id]);
 
   // Fetch user's delivered orders to check purchase eligibility for review
   useEffect(() => {
@@ -366,12 +384,12 @@ export default function ProductDetailPage({ params }) {
       return { label: 'Out of Stock', color: C.red, bg: C.redBg, dot: C.red };
     if (selectedVariant.stock <= LOW_STOCK_THRESHOLD)
       return {
-        label: `Only ${selectedVariant.stock} left`,
+        label: `Low Stock (${selectedVariant.stock} left)`,
         color: C.orange,
         bg: C.orangeBg,
         dot: C.orange,
       };
-    return { label: 'In Stock', color: C.green, bg: C.greenBg, dot: C.green };
+    return { label: `In Stock (${selectedVariant.stock} available)`, color: C.green, bg: C.greenBg, dot: C.green };
   }, [selectedVariant]);
 
   const ratingDistribution = useMemo(() => {
@@ -417,6 +435,20 @@ export default function ProductDetailPage({ params }) {
     }
   }
 
+  function handleRemoveFromCart() {
+    try {
+      const raw = localStorage.getItem(CART_KEY);
+      const cart = raw ? JSON.parse(raw) : [];
+      const updated = cart.filter(item => item.productId !== product._id);
+      localStorage.setItem(CART_KEY, JSON.stringify(updated));
+      window.dispatchEvent(new Event('cart-updated'));
+      setQuantity(1);
+      showToast(`${product.name} removed from cart`, 'success');
+    } catch {
+      showToast('Failed to remove from cart', 'error');
+    }
+  }
+
   async function handleToggleWishlist() {
     setWishlistLoading(true);
     try {
@@ -447,7 +479,7 @@ export default function ProductDetailPage({ params }) {
 
   return (
     <div style={{ background: C.bg, minHeight: '100vh' }}>
-      {/* Breadcrumb */}
+      {/* Back to Products + Breadcrumb */}
       <nav
         style={{
           maxWidth: '1200px',
@@ -455,6 +487,9 @@ export default function ProductDetailPage({ params }) {
           padding: '1.5rem 2rem 0',
         }}
       >
+        <Link href="/products" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#0071e3', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 500, marginBottom: '1rem' }}>
+          <ArrowLeft size={16} /> Back to Products
+        </Link>
         <div
           style={{
             display: 'flex',
@@ -924,10 +959,10 @@ export default function ProductDetailPage({ params }) {
               }}
             >
               <button
-                onClick={handleAddToCart}
+                onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
                 onMouseEnter={() => setHoveredAddCart(true)}
                 onMouseLeave={() => setHoveredAddCart(false)}
-                disabled={!selectedVariant || selectedVariant.stock === 0}
+                disabled={!isInCart && (!selectedVariant || selectedVariant.stock === 0)}
                 style={{
                   flex: 1,
                   display: 'flex',
@@ -936,34 +971,36 @@ export default function ProductDetailPage({ params }) {
                   gap: '0.5rem',
                   padding: '0.9375rem 1.5rem',
                   borderRadius: '980px',
-                  border: 'none',
+                  border: isInCart ? `1.5px solid ${C.red}` : 'none',
                   fontSize: '1rem',
                   fontWeight: 600,
                   fontFamily: 'inherit',
                   cursor:
-                    !selectedVariant || selectedVariant.stock === 0
+                    !isInCart && (!selectedVariant || selectedVariant.stock === 0)
                       ? 'not-allowed'
                       : 'pointer',
-                  background:
-                    !selectedVariant || selectedVariant.stock === 0
+                  background: isInCart
+                    ? C.redBg
+                    : !selectedVariant || selectedVariant.stock === 0
                       ? '#e8e8ed'
                       : hoveredAddCart
                       ? '#0077ed'
                       : C.blue,
-                  color:
-                    !selectedVariant || selectedVariant.stock === 0
+                  color: isInCart
+                    ? C.red
+                    : !selectedVariant || selectedVariant.stock === 0
                       ? C.muted
                       : '#ffffff',
                   transition: 'all 0.25s cubic-bezier(0.25, 0.1, 0.25, 1)',
-                  transform: hoveredAddCart && selectedVariant?.stock > 0 ? 'scale(1.02)' : 'scale(1)',
+                  transform: hoveredAddCart && (isInCart || selectedVariant?.stock > 0) ? 'scale(1.02)' : 'scale(1)',
                   boxShadow:
-                    hoveredAddCart && selectedVariant?.stock > 0
+                    hoveredAddCart && !isInCart && selectedVariant?.stock > 0
                       ? '0 4px 16px rgba(0,113,227,0.3)'
                       : 'none',
                 }}
               >
                 <ShoppingBag size={18} />
-                {selectedVariant?.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                {isInCart ? 'Remove from Cart' : selectedVariant?.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
               </button>
               <button
                 onClick={handleToggleWishlist}
