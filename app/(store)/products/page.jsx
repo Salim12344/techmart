@@ -300,6 +300,10 @@ function ProductsContent() {
     setQuickAddQuantity(1);
   }
 
+  useEffect(() => {
+    setQuickAddQuantity(1);
+  }, [quickAddColor, quickAddStorage]);
+
   const quickAddVariant = useMemo(() => {
     if (!quickAddProduct?.variants) return null;
     return (

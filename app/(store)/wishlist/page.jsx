@@ -164,6 +164,10 @@ export default function WishlistPage() {
     setQuickAddQuantity(1);
   }
 
+  useEffect(() => {
+    setQuickAddQuantity(1);
+  }, [quickAddColor, quickAddStorage]);
+
   const quickAddVariant = quickAddProduct?.variants?.find(
     (v) => v.color === quickAddColor && v.storage === quickAddStorage
   ) || null;
