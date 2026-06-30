@@ -38,6 +38,10 @@ export async function PATCH(req, { params }) {
       return Response.json({ error: 'Associated order not found' }, { status: 404 });
     }
 
+    if (status === 'APPROVED' && order.status === 'cancelled') {
+      return Response.json({ error: 'Cannot approve dispute for an already-cancelled order (stock already restored)' }, { status: 400 });
+    }
+
     dispute.status = status;
     dispute.adminNote = adminResponse;
     dispute.approvedBy = session.user.id;
@@ -53,7 +57,10 @@ export async function PATCH(req, { params }) {
             'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ transaction: order.paymentReference }),
+          body: JSON.stringify({
+            transaction: order.paymentReference,
+            amount: Math.round(order.totalAmount * 100),
+          }),
         });
         const paystackData = await paystackRes.json();
         if (paystackData.status && paystackData.data) {
@@ -89,7 +96,11 @@ export async function PATCH(req, { params }) {
     // Send email to customer
     const customer = await User.findById(dispute.userId);
     if (customer?.email) {
-      await sendDisputeResolutionEmail(customer.email, dispute, order, status === 'APPROVED');
+      try {
+        await sendDisputeResolutionEmail(customer.email, dispute, order, status === 'APPROVED');
+      } catch (emailErr) {
+        console.error('Dispute resolution email failed:', emailErr);
+      }
     }
 
     return Response.json({ dispute });

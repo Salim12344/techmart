@@ -63,20 +63,27 @@ export const authOptions = {
       }
       return true;
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger }) {
       if (user && !account) {
         token.id = user.id;
         token.role = user.role;
       }
 
       const isValidObjectId = token.id && /^[a-f\d]{24}$/i.test(token.id);
-      if (!isValidObjectId && token.email) {
+      const shouldRefresh =
+        !isValidObjectId ||
+        trigger === 'update' ||
+        !token.roleCheckedAt ||
+        Date.now() - token.roleCheckedAt > 5 * 60 * 1000;
+
+      if (shouldRefresh && token.email) {
         try {
           await connectDB();
           const dbUser = await User.findOne({ email: token.email.toLowerCase() });
           if (dbUser) {
             token.id = dbUser._id.toString();
             token.role = dbUser.role;
+            token.roleCheckedAt = Date.now();
           }
         } catch {}
       }

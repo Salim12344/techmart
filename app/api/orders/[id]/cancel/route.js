@@ -36,7 +36,10 @@ export async function POST(req, { params }) {
           Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ transaction: order.paymentReference }),
+        body: JSON.stringify({
+          transaction: order.paymentReference,
+          amount: Math.round(order.totalAmount * 100),
+        }),
       });
       const refundData = await refundRes.json();
       if (!refundData.status) {

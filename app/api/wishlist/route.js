@@ -32,6 +32,11 @@ export async function POST(req) {
     await connectDB();
     const { productId } = await req.json();
 
+    const product = await Product.findById(productId);
+    if (!product) {
+      return Response.json({ error: 'Product no longer available' }, { status: 404 });
+    }
+
     const existing = await Wishlist.findOne({ userId: session.user.id, productId });
     if (existing) {
       return Response.json({ message: 'Already in wishlist' });

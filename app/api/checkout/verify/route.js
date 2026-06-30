@@ -23,7 +23,11 @@ export async function GET(req) {
     if (paystackData.status && paystackData.data?.status === 'success') {
       await connectDB();
 
-      const order = await Order.findOne({ paymentReference: reference, status: 'pending' });
+      const order = await Order.findOneAndUpdate(
+        { paymentReference: reference, status: 'pending', paymentVerifiedAt: { $exists: false } },
+        { $set: { paymentVerifiedAt: new Date() } },
+        { new: false }
+      );
 
       if (order) {
         // Deduct stock for each item
