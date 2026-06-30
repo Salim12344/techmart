@@ -8,7 +8,9 @@ import {
   Search, Heart, ShoppingBag, Star, X, ChevronDown, Package, GitCompareArrows, ArrowRight, Plus, Minus,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useToast } from '@/app/components/Toast';
+import { getGuestWishlist, toggleGuestWishlist } from '@/lib/guestWishlist';
 
 const C = {
   bg: '#f5f5f7', card: '#ffffff', border: '#e8e8ed',
@@ -147,6 +149,7 @@ function ProductsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { showToast } = useToast();
+  const { status: authStatus } = useSession();
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -194,20 +197,48 @@ function ProductsContent() {
   }, []);
 
   useEffect(() => {
-    async function fetchWishlist() {
-      try {
-        const res = await fetch('/api/wishlist');
-        if (res.ok) {
-          const data = await res.json();
-          setWishlistedIds(new Set((data.wishlist || []).map(p => p._id)));
-        }
-      } catch {}
+    if (authStatus === 'loading') return;
+    if (authStatus === 'authenticated') {
+      async function fetchWishlist() {
+        try {
+          const res = await fetch('/api/wishlist');
+          if (res.ok) {
+            const data = await res.json();
+            setWishlistedIds(new Set((data.wishlist || []).map(p => p._id)));
+          }
+        } catch {}
+      }
+      fetchWishlist();
+    } else {
+      setWishlistedIds(new Set(getGuestWishlist()));
     }
-    fetchWishlist();
-  }, []);
+  }, [authStatus]);
+
+  useEffect(() => {
+    function syncWishlist() {
+      if (authStatus !== 'authenticated') {
+        setWishlistedIds(new Set(getGuestWishlist()));
+      }
+    }
+    window.addEventListener('wishlist-updated', syncWishlist);
+    return () => window.removeEventListener('wishlist-updated', syncWishlist);
+  }, [authStatus]);
 
   async function toggleWishlist(productId) {
     const isWishlisted = wishlistedIds.has(productId);
+
+    if (authStatus !== 'authenticated') {
+      const nowInWishlist = toggleGuestWishlist(productId);
+      setWishlistedIds(prev => {
+        const next = new Set(prev);
+        if (nowInWishlist) next.add(productId);
+        else next.delete(productId);
+        return next;
+      });
+      showToast(nowInWishlist ? 'Added to wishlist' : 'Removed from wishlist', 'success');
+      return;
+    }
+
     try {
       const res = await fetch('/api/wishlist', {
         method: isWishlisted ? 'DELETE' : 'POST',

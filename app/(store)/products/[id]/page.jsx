@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useToast } from '@/app/components/Toast';
+import { isInGuestWishlist, toggleGuestWishlist } from '@/lib/guestWishlist';
 import {
   Star, Heart, ShoppingBag, Plus, Minus,
   ChevronRight, Shield, Truck, Package, Send, ArrowLeft,
@@ -253,14 +254,6 @@ export default function ProductDetailPage({ params }) {
 
         if (p.colors?.length > 0) setSelectedColor(p.colors[0].name);
         if (p.storageOptions?.length > 0) setSelectedStorage(p.storageOptions[0]);
-
-        try {
-          const wRes = await fetch('/api/wishlist');
-          if (wRes.ok) {
-            const wData = await wRes.json();
-            setIsWishlisted((wData.wishlist || []).some(p => p._id === id));
-          }
-        } catch {}
       } catch {
         if (!cancelled) showToast('Failed to load product', 'error');
       } finally {
@@ -270,6 +263,35 @@ export default function ProductDetailPage({ params }) {
     fetchData();
     return () => { cancelled = true; };
   }, [id]);
+
+  // Wishlist status: authenticated -> API, guest -> localStorage
+  useEffect(() => {
+    if (authStatus === 'loading') return;
+    if (authStatus === 'authenticated') {
+      let cancelled = false;
+      async function fetchWishlistStatus() {
+        try {
+          const wRes = await fetch('/api/wishlist');
+          if (wRes.ok) {
+            const wData = await wRes.json();
+            if (!cancelled) setIsWishlisted((wData.wishlist || []).some(p => p._id === id));
+          }
+        } catch {}
+      }
+      fetchWishlistStatus();
+      return () => { cancelled = true; };
+    } else {
+      setIsWishlisted(isInGuestWishlist(id));
+    }
+  }, [id, authStatus]);
+
+  useEffect(() => {
+    function syncGuestWishlist() {
+      if (authStatus !== 'authenticated') setIsWishlisted(isInGuestWishlist(id));
+    }
+    window.addEventListener('wishlist-updated', syncGuestWishlist);
+    return () => window.removeEventListener('wishlist-updated', syncGuestWishlist);
+  }, [id, authStatus]);
 
   const selectedVariant = useMemo(() => {
     if (!product?.variants) return null;
@@ -462,6 +484,13 @@ export default function ProductDetailPage({ params }) {
   }
 
   async function handleToggleWishlist() {
+    if (authStatus !== 'authenticated') {
+      const nowInWishlist = toggleGuestWishlist(id);
+      setIsWishlisted(nowInWishlist);
+      showToast(nowInWishlist ? 'Added to wishlist' : 'Removed from wishlist', 'success');
+      return;
+    }
+
     setWishlistLoading(true);
     try {
       const res = await fetch('/api/wishlist', {

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
+import { getGuestWishlist, clearGuestWishlist } from '@/lib/guestWishlist';
 import {
   ShoppingBag,
   Heart,
@@ -101,6 +102,24 @@ export default function Navbar() {
     setUserDropdownOpen(false);
   }, [pathname]);
 
+  // Merge guest wishlist into account once user is authenticated
+  useEffect(() => {
+    if (status === 'authenticated') {
+      const guestIds = getGuestWishlist();
+      if (guestIds.length > 0) {
+        Promise.all(guestIds.map(productId =>
+          fetch('/api/wishlist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId }),
+          }).catch(() => {})
+        )).then(() => {
+          clearGuestWishlist();
+        });
+      }
+    }
+  }, [status]);
+
   // Check for unread support messages
   useEffect(() => {
     if (status !== 'authenticated') return;
@@ -146,6 +165,10 @@ export default function Navbar() {
 
   function handleSignOut() {
     if (confirm('Are you sure you want to sign out?')) {
+      localStorage.removeItem('techmart-cart');
+      localStorage.removeItem('techmart-wishlist');
+      window.dispatchEvent(new Event('cart-updated'));
+      window.dispatchEvent(new Event('wishlist-updated'));
       signOut({ callbackUrl: '/' });
     }
   }

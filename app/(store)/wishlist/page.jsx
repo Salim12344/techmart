@@ -3,11 +3,11 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, Trash2, ShoppingCart, Eye, X, Package, ShoppingBag, Plus, Minus } from 'lucide-react';
 import { useToast } from '@/app/components/Toast';
+import { getGuestWishlist, toggleGuestWishlist } from '@/lib/guestWishlist';
 
 const C = {
   bg: '#f5f5f7', card: '#ffffff', border: '#e8e8ed',
@@ -68,7 +68,6 @@ function addVariantToCart({ product, variant, color, storage, quantity, toast })
 
 export default function WishlistPage() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const { showToast } = useToast();
 
   const [wishlist, setWishlist] = useState([]);
@@ -81,34 +80,61 @@ export default function WishlistPage() {
 
   useEffect(() => {
     if (status === 'loading') return;
-    if (status === 'unauthenticated') {
-      router.replace('/auth/login?redirect=/wishlist');
-      return;
-    }
-  }, [status, router]);
 
-  useEffect(() => {
-    if (status !== 'authenticated') return;
-    const fetchWishlist = async () => {
-      try {
-        const res = await fetch('/api/wishlist');
-        const data = await res.json();
-        if (res.ok) {
-          setWishlist(data.wishlist || []);
-        } else {
-          showToast(data.error || 'Failed to load wishlist');
+    if (status === 'authenticated') {
+      const fetchWishlist = async () => {
+        try {
+          const res = await fetch('/api/wishlist');
+          const data = await res.json();
+          if (res.ok) {
+            setWishlist(data.wishlist || []);
+          } else {
+            showToast(data.error || 'Failed to load wishlist');
+          }
+        } catch (err) {
+          showToast(err.message);
+        } finally {
+          setLoading(false);
         }
-      } catch (err) {
-        showToast(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchWishlist();
+      };
+      fetchWishlist();
+    } else {
+      const fetchGuestWishlist = async () => {
+        try {
+          const guestIds = getGuestWishlist();
+          if (guestIds.length === 0) {
+            setWishlist([]);
+            setLoading(false);
+            return;
+          }
+          const res = await fetch('/api/products');
+          const data = await res.json();
+          if (res.ok) {
+            const products = (data.products || []).filter(p => guestIds.includes(p._id));
+            setWishlist(products);
+          } else {
+            showToast(data.error || 'Failed to load wishlist');
+          }
+        } catch (err) {
+          showToast(err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchGuestWishlist();
+    }
   }, [status]);
 
   const handleRemove = async (productId) => {
     if (!confirm('Remove this item from your wishlist?')) return;
+
+    if (status !== 'authenticated') {
+      toggleGuestWishlist(productId);
+      setWishlist(prev => prev.filter(p => p._id !== productId));
+      showToast('Removed from wishlist', 'success');
+      return;
+    }
+
     setRemovingId(productId);
     try {
       const res = await fetch('/api/wishlist', {
@@ -200,7 +226,7 @@ export default function WishlistPage() {
     return prices.length > 0 ? Math.min(...prices) : null;
   };
 
-  if (status === 'loading' || (status === 'authenticated' && loading)) {
+  if (status === 'loading' || loading) {
     return (
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem' }}>
         <div style={{ marginBottom: '2rem' }}>
@@ -228,8 +254,6 @@ export default function WishlistPage() {
       </div>
     );
   }
-
-  if (status === 'unauthenticated') return null;
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem' }}>

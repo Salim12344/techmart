@@ -203,6 +203,10 @@ function AdminSidebar({ mobileOpen, setMobileOpen }) {
           <button
             onClick={() => {
               if (confirm('Are you sure you want to sign out?')) {
+                localStorage.removeItem('techmart-cart');
+                localStorage.removeItem('techmart-wishlist');
+                window.dispatchEvent(new Event('cart-updated'));
+                window.dispatchEvent(new Event('wishlist-updated'));
                 signOut({ callbackUrl: '/' });
               }
             }}
