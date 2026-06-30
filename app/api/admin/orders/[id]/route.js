@@ -6,6 +6,15 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { sendOrderStatusEmail } from '@/lib/email';
 
+const VALID_TRANSITIONS = {
+  pending: ['confirmed', 'cancelled'],
+  confirmed: ['shipped', 'cancelled'],
+  shipped: ['delivered'],
+  delivered: [], // terminal, only disputes/refunds can change it after this
+  cancelled: [], // terminal
+  refunded: [], // terminal
+};
+
 export async function PATCH(req, { params }) {
   try {
     const session = await getServerSession(authOptions);
@@ -23,6 +32,13 @@ export async function PATCH(req, { params }) {
     }
 
     if (body.status && body.status !== currentOrder.status) {
+      const allowed = VALID_TRANSITIONS[currentOrder.status] || [];
+      if (!allowed.includes(body.status)) {
+        return Response.json({
+          error: `Cannot change order status from "${currentOrder.status}" to "${body.status}"`,
+        }, { status: 400 });
+      }
+
       const timestampMap = {
         confirmed: 'confirmedAt',
         shipped: 'shippedAt',

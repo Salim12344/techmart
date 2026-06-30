@@ -3,6 +3,10 @@ import Coupon from '@/models/Coupon';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
+// This endpoint is a read-only pre-check used to show coupon validity in the UI.
+// It does NOT reserve a use of the coupon. The real, race-safe enforcement
+// (atomic usedCount increment gated on maxUses) happens in
+// app/api/checkout/session/route.js via Coupon.findOneAndUpdate.
 export async function POST(req) {
   try {
     const session = await getServerSession(authOptions);

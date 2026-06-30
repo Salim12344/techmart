@@ -422,8 +422,20 @@ export default function ProductDetailPage({ params }) {
       const existingIdx = cart.findIndex((item) => item.sku === cartItem.sku);
 
       if (existingIdx > -1) {
-        cart[existingIdx].quantity += quantity;
+        const alreadyInBag = cart[existingIdx].quantity;
+        if (alreadyInBag + quantity > selectedVariant.stock) {
+          const room = selectedVariant.stock - alreadyInBag;
+          if (room <= 0) {
+            showToast(`Only ${selectedVariant.stock} in stock (${alreadyInBag} already in your bag)`, 'error');
+            return;
+          }
+          cart[existingIdx].quantity = selectedVariant.stock;
+          showToast(`Only ${room} more available (${alreadyInBag} already in your bag)`, 'error');
+        } else {
+          cart[existingIdx].quantity += quantity;
+        }
       } else {
+        cartItem.quantity = Math.min(quantity, selectedVariant.stock);
         cart.push(cartItem);
       }
 
@@ -959,10 +971,10 @@ export default function ProductDetailPage({ params }) {
               }}
             >
               <button
-                onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
+                onClick={handleAddToCart}
                 onMouseEnter={() => setHoveredAddCart(true)}
                 onMouseLeave={() => setHoveredAddCart(false)}
-                disabled={!isInCart && (!selectedVariant || selectedVariant.stock === 0)}
+                disabled={!selectedVariant || selectedVariant.stock === 0}
                 style={{
                   flex: 1,
                   display: 'flex',
@@ -971,36 +983,32 @@ export default function ProductDetailPage({ params }) {
                   gap: '0.5rem',
                   padding: '0.9375rem 1.5rem',
                   borderRadius: '980px',
-                  border: isInCart ? `1.5px solid ${C.red}` : 'none',
+                  border: 'none',
                   fontSize: '1rem',
                   fontWeight: 600,
                   fontFamily: 'inherit',
                   cursor:
-                    !isInCart && (!selectedVariant || selectedVariant.stock === 0)
+                    !selectedVariant || selectedVariant.stock === 0
                       ? 'not-allowed'
                       : 'pointer',
-                  background: isInCart
-                    ? C.redBg
-                    : !selectedVariant || selectedVariant.stock === 0
+                  background: !selectedVariant || selectedVariant.stock === 0
                       ? '#e8e8ed'
                       : hoveredAddCart
                       ? '#0077ed'
                       : C.blue,
-                  color: isInCart
-                    ? C.red
-                    : !selectedVariant || selectedVariant.stock === 0
+                  color: !selectedVariant || selectedVariant.stock === 0
                       ? C.muted
                       : '#ffffff',
                   transition: 'all 0.25s cubic-bezier(0.25, 0.1, 0.25, 1)',
-                  transform: hoveredAddCart && (isInCart || selectedVariant?.stock > 0) ? 'scale(1.02)' : 'scale(1)',
+                  transform: hoveredAddCart && selectedVariant?.stock > 0 ? 'scale(1.02)' : 'scale(1)',
                   boxShadow:
-                    hoveredAddCart && !isInCart && selectedVariant?.stock > 0
+                    hoveredAddCart && selectedVariant?.stock > 0
                       ? '0 4px 16px rgba(0,113,227,0.3)'
                       : 'none',
                 }}
               >
                 <ShoppingBag size={18} />
-                {isInCart ? 'Remove from Cart' : selectedVariant?.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                {isInCart ? 'Add Another' : selectedVariant?.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
               </button>
               <button
                 onClick={handleToggleWishlist}

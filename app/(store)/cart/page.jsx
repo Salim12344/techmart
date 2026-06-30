@@ -23,6 +23,7 @@ export default function CartPage() {
   const [cart, setCart] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [removingIndex, setRemovingIndex] = useState(null);
+  const [stockMap, setStockMap] = useState({});
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -38,6 +39,53 @@ export default function CartPage() {
     setLoaded(true);
   }, []);
 
+  // Fetch current stock levels and clamp any cart items that exceed them.
+  useEffect(() => {
+    if (!loaded || cart.length === 0) return;
+    let cancelled = false;
+    async function fetchStock() {
+      try {
+        const res = await fetch('/api/products');
+        if (!res.ok) return;
+        const data = await res.json();
+        const products = data.products || [];
+        const map = {};
+        products.forEach((p) => {
+          (p.variants || []).forEach((v) => {
+            if (v.sku) map[v.sku] = v.stock;
+          });
+        });
+        if (cancelled) return;
+        setStockMap(map);
+
+        // Clamp quantities that now exceed current stock.
+        let changed = false;
+        const clamped = cart.map((item) => {
+          const stock = map[item.sku];
+          if (stock !== undefined && item.quantity > stock) {
+            changed = true;
+            if (stock > 0) {
+              showToast(`Reduced quantity for ${item.name} - only ${stock} in stock`, 'warning');
+            }
+            return { ...item, quantity: Math.max(stock, 0) };
+          }
+          return item;
+        }).filter((item) => item.quantity > 0);
+
+        if (changed) {
+          setCart(clamped);
+          localStorage.setItem('techmart-cart', JSON.stringify(clamped));
+          window.dispatchEvent(new Event('cart-updated'));
+        }
+      } catch {
+        // ignore - stock check is best-effort
+      }
+    }
+    fetchStock();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
+
   function persist(updated) {
     setCart(updated);
     localStorage.setItem('techmart-cart', JSON.stringify(updated));
@@ -45,6 +93,14 @@ export default function CartPage() {
   }
 
   function updateQuantity(index, delta) {
+    const item = cart[index];
+    if (delta > 0) {
+      const stock = stockMap[item.sku] ?? Infinity;
+      if (item.quantity >= stock) {
+        showToast(`Only ${stock} in stock`, 'error');
+        return;
+      }
+    }
     const updated = cart.map((item, i) => {
       if (i !== index) return item;
       const newQty = item.quantity + delta;
