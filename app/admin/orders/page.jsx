@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/app/components/Toast';
 import { ArrowLeft } from 'lucide-react';
+import { formatPrice } from '@/lib/formatPrice';
 
 const C = {
   bg: '#f5f5f7', card: '#ffffff', border: '#e8e8ed',
@@ -92,6 +93,119 @@ export default function AdminOrdersPage() {
     return idx < STATUS_FLOW.length - 1 ? STATUS_FLOW[idx + 1] : null;
   };
 
+  const renderOrderDetail = (order) => (
+    <div style={{ background: C.card, borderRadius: '18px', border: `1px solid ${C.border}`, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Order number + status */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <p style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: C.muted, margin: '0 0 0.25rem' }}>Order</p>
+          <p style={{ fontWeight: 700, fontSize: '1rem', color: C.text, margin: 0 }}>{order.orderNumber}</p>
+        </div>
+        <span style={{ padding: '0.25rem 0.75rem', borderRadius: '980px', fontSize: '0.75rem', fontWeight: 600, background: STATUS_STYLES[order.status]?.bg, color: STATUS_STYLES[order.status]?.color }}>
+          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+          {STATUS_FLOW.map((s, i) => {
+            const current = STATUS_FLOW.indexOf(order.status);
+            const done = i <= current;
+            return (
+              <div key={s} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem', flex: 1 }}>
+                <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: done ? C.blue : C.bg, border: `2px solid ${done ? C.blue : C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {done && <span style={{ color: '#fff', fontSize: '0.625rem', fontWeight: 700 }}>✓</span>}
+                </div>
+                <span style={{ fontSize: '0.625rem', color: done ? C.blue : C.muted, fontWeight: done ? 600 : 400, textAlign: 'center' }}>{s.charAt(0).toUpperCase() + s.slice(1)}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Items */}
+      <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: '1rem' }}>
+        <p style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: C.muted, margin: '0 0 0.625rem' }}>Items</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+          {order.items?.map((item, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+              <span style={{ color: C.muted }}>{item.productName} × {item.quantity}</span>
+              <span style={{ fontWeight: 600, color: C.text }}>{formatPrice(item.unitPrice * item.quantity)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Totals */}
+      <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', color: C.muted, marginBottom: '0.375rem' }}>
+          <span>Subtotal</span>
+          <span>{formatPrice(order.items?.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0))}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', color: C.muted, marginBottom: '0.5rem' }}>
+          <span>Delivery</span>
+          <span>{order.deliveryFee ? formatPrice(order.deliveryFee) : 'Free'}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9375rem', fontWeight: 700, color: C.text }}>
+          <span>Total</span>
+          <span style={{ color: C.blue }}>{formatPrice(order.totalAmount)}</span>
+        </div>
+      </div>
+
+      {/* Shipping address */}
+      <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: '1rem' }}>
+        <p style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: C.muted, margin: '0 0 0.625rem' }}>Shipping Address</p>
+        <p style={{ fontWeight: 600, fontSize: '0.875rem', color: C.text, margin: '0 0 0.125rem' }}>{order.shippingAddress?.fullName}</p>
+        <p style={{ fontSize: '0.8125rem', color: C.muted, margin: '0 0 0.125rem' }}>{order.shippingAddress?.street}</p>
+        <p style={{ fontSize: '0.8125rem', color: C.muted, margin: '0 0 0.125rem' }}>{order.shippingAddress?.city}, {order.shippingAddress?.state}</p>
+        <p style={{ fontSize: '0.8125rem', color: C.muted, margin: 0 }}>Phone: {order.shippingAddress?.phone}</p>
+      </div>
+
+      {/* Dates */}
+      <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+          <span style={{ color: C.muted }}>Ordered</span>
+          <span style={{ color: C.text }}>{new Date(order.createdAt).toLocaleDateString()}</span>
+        </div>
+        {order.confirmedAt && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+            <span style={{ color: C.muted }}>Confirmed</span>
+            <span style={{ color: C.text }}>{new Date(order.confirmedAt).toLocaleDateString()}</span>
+          </div>
+        )}
+        {order.shippedAt && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+            <span style={{ color: C.muted }}>Shipped</span>
+            <span style={{ color: C.text }}>{new Date(order.shippedAt).toLocaleDateString()}</span>
+          </div>
+        )}
+        {order.deliveredAt && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+            <span style={{ color: C.muted }}>Delivered</span>
+            <span style={{ color: C.text }}>{new Date(order.deliveredAt).toLocaleDateString()}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Action button */}
+      {nextStatus(order.status) && (
+        <button
+          onClick={() => handleUpdateStatus(order._id, nextStatus(order.status))}
+          disabled={updating}
+          style={{ width: '100%', background: updating ? C.muted : C.blue, color: '#fff', border: 'none', borderRadius: '980px', padding: '0.75rem', fontSize: '0.9375rem', fontWeight: 500, cursor: updating ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'background 0.2s' }}>
+          {updating ? 'Updating...' : `Mark as ${nextStatus(order.status).charAt(0).toUpperCase() + nextStatus(order.status).slice(1)}`}
+        </button>
+      )}
+
+      {!nextStatus(order.status) && (
+        <div style={{ textAlign: 'center', padding: '0.75rem', background: C.greenBg, borderRadius: '12px', fontSize: '0.875rem', color: C.green, fontWeight: 500 }}>
+          ✓ Order completed
+        </div>
+      )}
+    </div>
+  );
+
   if (loading) {
     return <div style={{ padding: '3rem', textAlign: 'center', color: C.muted }}>Loading orders...</div>;
   }
@@ -151,7 +265,8 @@ export default function AdminOrdersPage() {
               const isSelected = selectedOrder?._id === order._id;
               const ss = STATUS_STYLES[order.status] || STATUS_STYLES.pending;
               return (
-                <div key={order._id} onClick={() => setSelectedOrder(isSelected ? null : order)}
+                <div key={order._id}>
+                <div onClick={() => setSelectedOrder(isSelected ? null : order)}
                   className="admin-orders-list-row"
                   style={{ display: 'grid', gridTemplateColumns: '1fr 140px 100px 90px', padding: '0.875rem 1rem', borderBottom: `1px solid ${C.bg}`, cursor: 'pointer', background: isSelected ? '#f0f6ff' : C.card, transition: 'background 0.15s' }}
                   onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = C.bg; }}
@@ -164,13 +279,19 @@ export default function AdminOrdersPage() {
                     <span style={{ fontSize: '0.875rem', color: C.text }}>{order.shippingAddress?.fullName}</span>
                   </div>
                   <div className="admin-orders-hide-mobile" style={{ display: 'flex', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color: C.text }}>₦{order.totalAmount?.toLocaleString()}</span>
+                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color: C.text }}>{formatPrice(order.totalAmount)}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     <span style={{ padding: '0.2rem 0.625rem', borderRadius: '980px', fontSize: '0.6875rem', fontWeight: 600, background: ss.bg, color: ss.color }}>
                       {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                     </span>
                   </div>
+                </div>
+                {isSelected && (
+                  <div className="admin-orders-detail-inline" style={{ display: 'none', padding: '0 1rem 1rem' }}>
+                    {renderOrderDetail(order)}
+                  </div>
+                )}
                 </div>
               );
             })
@@ -179,118 +300,7 @@ export default function AdminOrdersPage() {
 
         {/* Detail panel */}
         <div className="admin-orders-detail" style={{ position: 'sticky', top: '1.5rem' }}>
-          {selectedOrder ? (
-            <div style={{ background: C.card, borderRadius: '18px', border: `1px solid ${C.border}`, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {/* Order number + status */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <p style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: C.muted, margin: '0 0 0.25rem' }}>Order</p>
-                  <p style={{ fontWeight: 700, fontSize: '1rem', color: C.text, margin: 0 }}>{selectedOrder.orderNumber}</p>
-                </div>
-                <span style={{ padding: '0.25rem 0.75rem', borderRadius: '980px', fontSize: '0.75rem', fontWeight: 600, background: STATUS_STYLES[selectedOrder.status]?.bg, color: STATUS_STYLES[selectedOrder.status]?.color }}>
-                  {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
-                </span>
-              </div>
-
-              {/* Progress bar */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  {STATUS_FLOW.map((s, i) => {
-                    const current = STATUS_FLOW.indexOf(selectedOrder.status);
-                    const done = i <= current;
-                    return (
-                      <div key={s} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem', flex: 1 }}>
-                        <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: done ? C.blue : C.bg, border: `2px solid ${done ? C.blue : C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {done && <span style={{ color: '#fff', fontSize: '0.625rem', fontWeight: 700 }}>✓</span>}
-                        </div>
-                        <span style={{ fontSize: '0.625rem', color: done ? C.blue : C.muted, fontWeight: done ? 600 : 400, textAlign: 'center' }}>{s.charAt(0).toUpperCase() + s.slice(1)}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Items */}
-              <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: '1rem' }}>
-                <p style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: C.muted, margin: '0 0 0.625rem' }}>Items</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-                  {selectedOrder.items?.map((item, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                      <span style={{ color: C.muted }}>{item.productName} × {item.quantity}</span>
-                      <span style={{ fontWeight: 600, color: C.text }}>₦{(item.unitPrice * item.quantity).toLocaleString()}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Totals */}
-              <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', color: C.muted, marginBottom: '0.375rem' }}>
-                  <span>Subtotal</span>
-                  <span>₦{selectedOrder.items?.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0).toLocaleString()}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', color: C.muted, marginBottom: '0.5rem' }}>
-                  <span>Delivery</span>
-                  <span>₦{selectedOrder.deliveryFee?.toLocaleString() || 'Free'}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9375rem', fontWeight: 700, color: C.text }}>
-                  <span>Total</span>
-                  <span style={{ color: C.blue }}>₦{selectedOrder.totalAmount?.toLocaleString()}</span>
-                </div>
-              </div>
-
-              {/* Shipping address */}
-              <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: '1rem' }}>
-                <p style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: C.muted, margin: '0 0 0.625rem' }}>Shipping Address</p>
-                <p style={{ fontWeight: 600, fontSize: '0.875rem', color: C.text, margin: '0 0 0.125rem' }}>{selectedOrder.shippingAddress?.fullName}</p>
-                <p style={{ fontSize: '0.8125rem', color: C.muted, margin: '0 0 0.125rem' }}>{selectedOrder.shippingAddress?.street}</p>
-                <p style={{ fontSize: '0.8125rem', color: C.muted, margin: '0 0 0.125rem' }}>{selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state}</p>
-                <p style={{ fontSize: '0.8125rem', color: C.muted, margin: 0 }}>Phone: {selectedOrder.shippingAddress?.phone}</p>
-              </div>
-
-              {/* Dates */}
-              <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-                  <span style={{ color: C.muted }}>Ordered</span>
-                  <span style={{ color: C.text }}>{new Date(selectedOrder.createdAt).toLocaleDateString()}</span>
-                </div>
-                {selectedOrder.confirmedAt && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-                    <span style={{ color: C.muted }}>Confirmed</span>
-                    <span style={{ color: C.text }}>{new Date(selectedOrder.confirmedAt).toLocaleDateString()}</span>
-                  </div>
-                )}
-                {selectedOrder.shippedAt && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-                    <span style={{ color: C.muted }}>Shipped</span>
-                    <span style={{ color: C.text }}>{new Date(selectedOrder.shippedAt).toLocaleDateString()}</span>
-                  </div>
-                )}
-                {selectedOrder.deliveredAt && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-                    <span style={{ color: C.muted }}>Delivered</span>
-                    <span style={{ color: C.text }}>{new Date(selectedOrder.deliveredAt).toLocaleDateString()}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Action button */}
-              {nextStatus(selectedOrder.status) && (
-                <button
-                  onClick={() => handleUpdateStatus(selectedOrder._id, nextStatus(selectedOrder.status))}
-                  disabled={updating}
-                  style={{ width: '100%', background: updating ? C.muted : C.blue, color: '#fff', border: 'none', borderRadius: '980px', padding: '0.75rem', fontSize: '0.9375rem', fontWeight: 500, cursor: updating ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'background 0.2s' }}>
-                  {updating ? 'Updating...' : `Mark as ${nextStatus(selectedOrder.status).charAt(0).toUpperCase() + nextStatus(selectedOrder.status).slice(1)}`}
-                </button>
-              )}
-
-              {!nextStatus(selectedOrder.status) && (
-                <div style={{ textAlign: 'center', padding: '0.75rem', background: C.greenBg, borderRadius: '12px', fontSize: '0.875rem', color: C.green, fontWeight: 500 }}>
-                  ✓ Order completed
-                </div>
-              )}
-            </div>
-          ) : (
+          {selectedOrder ? renderOrderDetail(selectedOrder) : (
             <div style={{ background: C.card, borderRadius: '18px', border: `1px solid ${C.border}`, padding: '2rem', textAlign: 'center', color: C.muted }}>
               Select an order to view details
             </div>
@@ -304,7 +314,10 @@ export default function AdminOrdersPage() {
             grid-template-columns: 1fr !important;
           }
           .admin-orders-detail {
-            position: static !important;
+            display: none !important;
+          }
+          .admin-orders-detail-inline {
+            display: block !important;
           }
           .admin-orders-page h1 {
             font-size: 1.5rem !important;

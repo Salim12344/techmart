@@ -4,7 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Lock, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useToast } from '@/app/components/Toast';
+import { useConfirm } from '@/app/components/ConfirmDialog';
 
 const C = {
   bg: '#f5f5f7', card: '#ffffff', border: '#e8e8ed',
@@ -22,9 +24,9 @@ function formatPrice(amount) {
 export default function CartPage() {
   const [cart, setCart] = useState([]);
   const [loaded, setLoaded] = useState(false);
-  const [removingIndex, setRemovingIndex] = useState(null);
   const [stockMap, setStockMap] = useState({});
   const { showToast } = useToast();
+  const confirmAction = useConfirm();
 
   useEffect(() => {
     try {
@@ -110,15 +112,11 @@ export default function CartPage() {
     persist(updated);
   }
 
-  function removeItem(index) {
-    if (!confirm('Remove this item from your bag?')) return;
-    setRemovingIndex(index);
-    setTimeout(() => {
-      const updated = cart.filter((_, i) => i !== index);
-      persist(updated);
-      setRemovingIndex(null);
-      showToast('Item removed from your bag', 'success');
-    }, 300);
+  async function removeItem(index) {
+    if (!(await confirmAction('Remove this item from your bag?'))) return;
+    const updated = cart.filter((_, i) => i !== index);
+    persist(updated);
+    showToast('Item removed from your bag', 'success');
   }
 
   if (!loaded) {
@@ -211,23 +209,27 @@ export default function CartPage() {
         {/* Main Layout */}
         <div style={{ display: 'flex', gap: '2.5rem', alignItems: 'flex-start' }} className="cart-layout">
           {/* Cart Items Column */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="cart-items-column" style={{ flex: 1, minWidth: 0 }}>
+            <AnimatePresence initial={false}>
             {cart.map((item, index) => (
-              <div
-                key={`${item.productId}-${item.sku}-${index}`}
+              <motion.div
+                key={`${item.productId}-${item.sku}`}
+                layout
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: -24, scale: 0.97 }}
+                transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
                 className="cart-item-row"
                 style={{
                   display: 'flex', gap: '1.5rem', padding: '1.5rem',
+                  width: '100%', boxSizing: 'border-box',
                   background: C.card, borderRadius: 16,
                   boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
                   marginBottom: '1rem',
-                  transition: 'all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1)',
-                  opacity: removingIndex === index ? 0 : 1,
-                  transform: removingIndex === index ? 'translateX(-20px) scale(0.97)' : 'translateX(0) scale(1)',
                 }}
               >
                 {/* Product Image */}
-                <div style={{
+                <Link href={`/products/${item.productId}?from=cart`} style={{
                   width: 80, height: 80, borderRadius: 12,
                   background: '#f5f5f7', flexShrink: 0, overflow: 'hidden',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -243,19 +245,21 @@ export default function CartPage() {
                   ) : (
                     <ShoppingBag size={28} color={C.muted} strokeWidth={1.2} />
                   )}
-                </div>
+                </Link>
 
                 {/* Item Details */}
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                   {/* Top Row: Name + Line Total */}
                   <div className="cart-item-details-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
                     <div style={{ minWidth: 0 }}>
-                      <h3 style={{
-                        fontSize: '1.0625rem', fontWeight: 600, color: C.text,
-                        margin: 0, letterSpacing: '-0.01em', lineHeight: 1.3,
-                      }}>
-                        {item.name}
-                      </h3>
+                      <Link href={`/products/${item.productId}?from=cart`} style={{ textDecoration: 'none' }}>
+                        <h3 style={{
+                          fontSize: '1.0625rem', fontWeight: 600, color: C.text,
+                          margin: 0, letterSpacing: '-0.01em', lineHeight: 1.3,
+                        }}>
+                          {item.name}
+                        </h3>
+                      </Link>
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: '0.75rem',
                         flexWrap: 'wrap', marginTop: '0.375rem',
@@ -368,8 +372,9 @@ export default function CartPage() {
                     </button>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
+            </AnimatePresence>
 
             {/* Continue Shopping Link */}
             <Link href="/products" style={{
@@ -520,6 +525,9 @@ export default function CartPage() {
           .cart-summary {
             width: 100% !important;
             position: static !important;
+          }
+          .cart-items-column {
+            width: 100% !important;
           }
         }
         @media (max-width: 768px) {

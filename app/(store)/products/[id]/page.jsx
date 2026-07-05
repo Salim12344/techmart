@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useToast } from '@/app/components/Toast';
 import { isInGuestWishlist, toggleGuestWishlist } from '@/lib/guestWishlist';
+import { formatPrice } from '@/lib/formatPrice';
 import {
   Star, Heart, ShoppingBag, Plus, Minus,
   ChevronRight, Shield, Truck, Package, Send, ArrowLeft,
@@ -217,7 +218,12 @@ export default function ProductDetailPage({ params }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [hoveredAddCart, setHoveredAddCart] = useState(false);
   const [hoveredWishlist, setHoveredWishlist] = useState(false);
-  const [isInCart, setIsInCart] = useState(false);
+  const [cartItems, setCartItems] = useState([]);
+  const [cameFromCart, setCameFromCart] = useState(false);
+
+  useEffect(() => {
+    setCameFromCart(new URLSearchParams(window.location.search).get('from') === 'cart');
+  }, []);
 
   // Review form state
   const { data: session, status: authStatus } = useSession();
@@ -306,22 +312,28 @@ export default function ProductDetailPage({ params }) {
     setQuantity(1);
   }, [selectedColor, selectedStorage]);
 
-  // Check if product is in cart
+  // Track live cart contents so the quantity stepper stays in sync with the actual bag
   useEffect(() => {
-    function syncCartStatus() {
+    function syncCart() {
       try {
         const cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
-        setIsInCart(cart.some(item => item.productId === id));
-      } catch { setIsInCart(false); }
+        setCartItems(Array.isArray(cart) ? cart : []);
+      } catch { setCartItems([]); }
     }
-    syncCartStatus();
-    window.addEventListener('cart-updated', syncCartStatus);
-    window.addEventListener('storage', syncCartStatus);
+    syncCart();
+    window.addEventListener('cart-updated', syncCart);
+    window.addEventListener('storage', syncCart);
     return () => {
-      window.removeEventListener('cart-updated', syncCartStatus);
-      window.removeEventListener('storage', syncCartStatus);
+      window.removeEventListener('cart-updated', syncCart);
+      window.removeEventListener('storage', syncCart);
     };
   }, [id]);
+
+  const cartItemForVariant = useMemo(() => {
+    if (!selectedVariant) return null;
+    return cartItems.find((item) => item.sku === selectedVariant.sku) || null;
+  }, [cartItems, selectedVariant]);
+
 
   // Fetch user's delivered orders to check purchase eligibility for review
   useEffect(() => {
@@ -469,6 +481,29 @@ export default function ProductDetailPage({ params }) {
     }
   }
 
+  function updateCartItemQuantity(delta) {
+    if (!selectedVariant) return;
+    try {
+      const raw = localStorage.getItem(CART_KEY);
+      const currentCart = raw ? JSON.parse(raw) : [];
+      const idx = currentCart.findIndex((item) => item.sku === selectedVariant.sku);
+      if (idx === -1) return;
+
+      const newQty = currentCart[idx].quantity + delta;
+      if (newQty < 1) return;
+      if (delta > 0 && newQty > selectedVariant.stock) {
+        showToast(`Only ${selectedVariant.stock} in stock`, 'error');
+        return;
+      }
+
+      currentCart[idx] = { ...currentCart[idx], quantity: newQty };
+      localStorage.setItem(CART_KEY, JSON.stringify(currentCart));
+      window.dispatchEvent(new Event('cart-updated'));
+    } catch {
+      showToast('Failed to update cart', 'error');
+    }
+  }
+
   function handleRemoveFromCart() {
     try {
       const raw = localStorage.getItem(CART_KEY);
@@ -528,8 +563,8 @@ export default function ProductDetailPage({ params }) {
           padding: '1.5rem 2rem 0',
         }}
       >
-        <Link href="/products" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#0071e3', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 500, marginBottom: '1rem' }}>
-          <ArrowLeft size={16} /> Back to Products
+        <Link href={cameFromCart ? '/cart' : '/products'} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#0071e3', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 500, marginBottom: '1rem' }}>
+          <ArrowLeft size={16} /> {cameFromCart ? 'Back to Bag' : 'Back to Products'}
         </Link>
         <div
           style={{
@@ -853,7 +888,7 @@ export default function ProductDetailPage({ params }) {
                       letterSpacing: '-0.03em',
                     }}
                   >
-                    {'₦'}{selectedVariant.price.toLocaleString()}
+                    {formatPrice(selectedVariant.price)}
                   </span>
                 ) : (
                   <span
@@ -930,8 +965,12 @@ export default function ProductDetailPage({ params }) {
                 }}
               >
                 <button
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  disabled={quantity <= 1}
+                  onClick={() =>
+                    cartItemForVariant
+                      ? updateCartItemQuantity(-1)
+                      : setQuantity((q) => Math.max(1, q - 1))
+                  }
+                  disabled={(cartItemForVariant ? cartItemForVariant.quantity : quantity) <= 1}
                   style={{
                     width: '44px',
                     height: '44px',
@@ -940,8 +979,8 @@ export default function ProductDetailPage({ params }) {
                     justifyContent: 'center',
                     border: 'none',
                     background: 'transparent',
-                    cursor: quantity <= 1 ? 'not-allowed' : 'pointer',
-                    color: quantity <= 1 ? '#d2d2d7' : C.text,
+                    cursor: (cartItemForVariant ? cartItemForVariant.quantity : quantity) <= 1 ? 'not-allowed' : 'pointer',
+                    color: (cartItemForVariant ? cartItemForVariant.quantity : quantity) <= 1 ? '#d2d2d7' : C.text,
                     transition: 'color 0.2s',
                   }}
                 >
@@ -957,15 +996,20 @@ export default function ProductDetailPage({ params }) {
                     userSelect: 'none',
                   }}
                 >
-                  {quantity}
+                  {cartItemForVariant ? cartItemForVariant.quantity : quantity}
                 </span>
                 <button
                   onClick={() =>
-                    setQuantity((q) =>
-                      Math.min(q + 1, selectedVariant?.stock || 1)
-                    )
+                    cartItemForVariant
+                      ? updateCartItemQuantity(1)
+                      : setQuantity((q) =>
+                          Math.min(q + 1, selectedVariant?.stock || 1)
+                        )
                   }
-                  disabled={!selectedVariant || quantity >= selectedVariant.stock}
+                  disabled={
+                    !selectedVariant ||
+                    (cartItemForVariant ? cartItemForVariant.quantity : quantity) >= selectedVariant.stock
+                  }
                   style={{
                     width: '44px',
                     height: '44px',
@@ -975,11 +1019,11 @@ export default function ProductDetailPage({ params }) {
                     border: 'none',
                     background: 'transparent',
                     cursor:
-                      !selectedVariant || quantity >= selectedVariant.stock
+                      !selectedVariant || (cartItemForVariant ? cartItemForVariant.quantity : quantity) >= selectedVariant.stock
                         ? 'not-allowed'
                         : 'pointer',
                     color:
-                      !selectedVariant || quantity >= selectedVariant.stock
+                      !selectedVariant || (cartItemForVariant ? cartItemForVariant.quantity : quantity) >= selectedVariant.stock
                         ? '#d2d2d7'
                         : C.text,
                     transition: 'color 0.2s',
@@ -1037,7 +1081,7 @@ export default function ProductDetailPage({ params }) {
                 }}
               >
                 <ShoppingBag size={18} />
-                {isInCart ? 'Add Another' : selectedVariant?.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                {cartItemForVariant ? 'Add Another' : selectedVariant?.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
               </button>
               <button
                 onClick={handleToggleWishlist}

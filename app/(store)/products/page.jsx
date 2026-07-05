@@ -4,8 +4,9 @@ import { Suspense, useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'motion/react';
 import {
-  Search, Heart, ShoppingBag, Star, X, ChevronDown, Package, GitCompareArrows, ArrowRight, Plus, Minus,
+  Search, Heart, ShoppingBag, Star, X, ChevronDown, Package, GitCompareArrows, ArrowRight, Plus, Minus, Check,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -161,6 +162,7 @@ function ProductsContent() {
   const [showSortDropdown, setShowSortDropdown] = useState(false);
 
   const [hoveredCard, setHoveredCard] = useState(null);
+  const [justAddedId, setJustAddedId] = useState(null);
   const [hoveredHeart, setHoveredHeart] = useState(null);
   const [hoveredCompare, setHoveredCompare] = useState(null);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -321,6 +323,8 @@ function ProductsContent() {
       setQuickAddQuantity(1);
     } else {
       addToCart(product, showToast);
+      setJustAddedId(product._id);
+      setTimeout(() => setJustAddedId((id) => (id === product._id ? null : id)), 1200);
     }
   }
 
@@ -860,25 +864,26 @@ function ProductsContent() {
               gap: '1.5rem',
             }}
           >
-            {filteredProducts.map((product) => {
+            {filteredProducts.map((product, index) => {
               const minPrice = getMinPrice(product.variants);
               const totalStock = getTotalStock(product.variants);
               const isHovered = hoveredCard === product._id;
 
               return (
-                <div
+                <motion.div
                   key={product._id}
                   onMouseEnter={() => setHoveredCard(product._id)}
                   onMouseLeave={() => setHoveredCard(null)}
+                  initial={{ opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-40px' }}
+                  transition={{ duration: 0.5, delay: (index % 6) * 0.06, ease: [0.16, 1, 0.3, 1] }}
+                  whileHover={{ y: -6, boxShadow: '0 20px 60px rgba(0,0,0,0.12)' }}
                   style={{
                     background: C.card,
                     borderRadius: '20px',
                     overflow: 'hidden',
-                    transition: 'all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1)',
-                    transform: isHovered ? 'translateY(-6px)' : 'translateY(0)',
-                    boxShadow: isHovered
-                      ? '0 20px 60px rgba(0,0,0,0.12)'
-                      : '0 1px 3px rgba(0,0,0,0.04)',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                     display: 'flex',
                     flexDirection: 'column',
                     position: 'relative',
@@ -1148,13 +1153,14 @@ function ProductsContent() {
                     </div>
 
                     {/* Add to Cart */}
-                    <button
+                    <motion.button
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         handleAddToCartClick(product);
                       }}
                       disabled={totalStock === 0}
+                      whileTap={{ scale: 0.95 }}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -1165,23 +1171,46 @@ function ProductsContent() {
                         marginTop: '0.875rem',
                         borderRadius: '980px',
                         border: 'none',
-                        background: totalStock === 0 ? '#e8e8ed' : C.blue,
+                        background: totalStock === 0 ? '#e8e8ed' : justAddedId === product._id ? C.green : C.blue,
                         color: totalStock === 0 ? C.muted : '#ffffff',
                         fontSize: '0.8125rem',
                         fontWeight: 600,
                         cursor: totalStock === 0 ? 'not-allowed' : 'pointer',
                         fontFamily: 'inherit',
-                        transition: 'all 0.35s cubic-bezier(0.25, 0.1, 0.25, 1)',
-                        opacity: 1,
-                        transform: 'translateY(0)',
+                        transition: 'background 0.3s ease',
                         pointerEvents: 'auto',
                       }}
                     >
-                      <ShoppingBag size={14} />
-                      Add to Cart
-                    </button>
+                      <AnimatePresence mode="wait" initial={false}>
+                        {justAddedId === product._id ? (
+                          <motion.span
+                            key="added"
+                            initial={{ opacity: 0, scale: 0.6 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.6 }}
+                            transition={{ duration: 0.18 }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                          >
+                            <Check size={14} />
+                            Added
+                          </motion.span>
+                        ) : (
+                          <motion.span
+                            key="add"
+                            initial={{ opacity: 0, scale: 0.6 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.6 }}
+                            transition={{ duration: 0.18 }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                          >
+                            <ShoppingBag size={14} />
+                            Add to Cart
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </motion.button>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
           </div>

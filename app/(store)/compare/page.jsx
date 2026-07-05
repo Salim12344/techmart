@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { X, ShoppingBag, ArrowLeft, GitCompareArrows } from 'lucide-react';
 import { useToast } from '@/app/components/Toast';
+import { formatPrice } from '@/lib/formatPrice';
 
 const C = {
   bg: '#f5f5f7', card: '#ffffff', border: '#e8e8ed',
@@ -226,7 +227,7 @@ export default function ComparePage() {
       label: 'Starting Price',
       values: products.map((p) => {
         const price = getStartingPrice(p);
-        return price ? `₦${price.toLocaleString()}` : '-';
+        return price ? formatPrice(price) : '-';
       }),
     });
 
@@ -409,7 +410,7 @@ export default function ComparePage() {
                       fontSize: '0.9375rem', fontWeight: 600, color: C.blue,
                       margin: '0 0 0.75rem',
                     }}>
-                      From ₦{getStartingPrice(product).toLocaleString()}
+                      From {formatPrice(getStartingPrice(product))}
                     </p>
 
                     {/* Add to Cart button */}

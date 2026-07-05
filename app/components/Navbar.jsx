@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { getGuestWishlist, clearGuestWishlist } from '@/lib/guestWishlist';
+import { useConfirm } from '@/app/components/ConfirmDialog';
 import {
   ShoppingBag,
   Heart,
@@ -36,6 +37,7 @@ const FONT_FAMILY = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pr
 
 export default function Navbar() {
   const { data: session, status } = useSession();
+  const confirmAction = useConfirm();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -163,8 +165,8 @@ export default function Navbar() {
 
   const isActive = (href) => pathname === href;
 
-  function handleSignOut() {
-    if (confirm('Are you sure you want to sign out?')) {
+  async function handleSignOut() {
+    if (await confirmAction('Are you sure you want to sign out?')) {
       localStorage.removeItem('techmart-cart');
       localStorage.removeItem('techmart-wishlist');
       window.dispatchEvent(new Event('cart-updated'));
@@ -340,6 +342,7 @@ export default function Navbar() {
                 transition: 'all 0.25s ease',
               }}
               title="Wishlist"
+              aria-label="Wishlist"
             >
               <Heart size={17} strokeWidth={1.6} />
             </Link>
@@ -363,6 +366,7 @@ export default function Navbar() {
                 transition: 'all 0.25s ease',
               }}
               title="Cart"
+              aria-label={`Cart${cartCount > 0 ? `, ${cartCount} item${cartCount === 1 ? '' : 's'}` : ''}`}
             >
               <ShoppingBag size={17} strokeWidth={1.6} />
               {cartCount > 0 && (

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { motion } from 'motion/react';
 import { ArrowRight, Star, ChevronRight, Truck, Shield, Lock, Headphones } from 'lucide-react';
 
 const FONT = "'Mona Sans', -apple-system, BlinkMacSystemFont, sans-serif";
@@ -229,62 +230,73 @@ export default function HomePage() {
         }} />
 
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <h1 style={{
-            fontSize: 'clamp(3.5rem, 10vw, 7rem)',
-            fontWeight: 700,
-            letterSpacing: '-0.06em',
-            color: '#ffffff',
-            margin: '0 0 1rem',
-            lineHeight: 0.95,
-            fontFamily: FONT,
-            animation: 'heroFadeUp 0.8s cubic-bezier(0.16,1,0.3,1) both',
-          }}>
+          <motion.h1
+            initial={{ opacity: 0, y: 28 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              fontSize: 'clamp(3.5rem, 10vw, 7rem)',
+              fontWeight: 700,
+              letterSpacing: '-0.06em',
+              color: '#ffffff',
+              margin: '0 0 1rem',
+              lineHeight: 0.95,
+              fontFamily: FONT,
+            }}>
             TechMart
-          </h1>
-          <p style={{
-            fontSize: 'clamp(1.125rem, 2.5vw, 1.5rem)',
-            margin: '0 0 2.5rem',
-            maxWidth: '560px',
-            lineHeight: 1.5,
-            fontWeight: 500,
-            fontFamily: FONT,
-            letterSpacing: '-0.01em',
-            background: 'linear-gradient(90deg, #a1a1a6, #f5f5f7, #a1a1a6)',
-            backgroundSize: '200% 100%',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            animation: 'heroFadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.15s both',
-          }}>
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 28 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              fontSize: 'clamp(1.125rem, 2.5vw, 1.5rem)',
+              margin: '0 0 2.5rem',
+              maxWidth: '560px',
+              lineHeight: 1.5,
+              fontWeight: 500,
+              fontFamily: FONT,
+              letterSpacing: '-0.01em',
+              background: 'linear-gradient(90deg, #a1a1a6, #f5f5f7, #a1a1a6)',
+              backgroundSize: '200% 100%',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}>
             Premium Apple products, delivered to your&nbsp;door.
-          </p>
-          <div style={{
-            display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap',
-            animation: 'heroFadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.3s both',
-          }}>
-            <Link
-              href="/products"
-              onMouseEnter={() => setHeroHover(true)}
-              onMouseLeave={() => setHeroHover(false)}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.625rem',
-                padding: '0.9375rem 2.25rem',
-                background: heroHover ? C.blue : '#ffffff',
-                color: heroHover ? '#ffffff' : '#1d1d1f',
-                borderRadius: '980px', fontSize: '1.0625rem', fontWeight: 600,
-                fontFamily: FONT, textDecoration: 'none', letterSpacing: '-0.01em',
-                border: 'none',
-                transition: 'all 0.4s cubic-bezier(0.25,0.1,0.25,1)',
-                transform: heroHover ? 'scale(1.03)' : 'scale(1)',
-                boxShadow: heroHover
-                  ? '0 0 30px rgba(0,113,227,0.4), 0 4px 20px rgba(0,0,0,0.3)'
-                  : '0 2px 12px rgba(0,0,0,0.2)',
-              }}
-            >
-              Shop Now
-              <ArrowRight size={18} strokeWidth={2} />
-            </Link>
-            <Link
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 28 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.24, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap',
+            }}>
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+              <Link
+                href="/products"
+                onMouseEnter={() => setHeroHover(true)}
+                onMouseLeave={() => setHeroHover(false)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.625rem',
+                  padding: '0.9375rem 2.25rem',
+                  background: heroHover ? C.blue : '#ffffff',
+                  color: heroHover ? '#ffffff' : '#1d1d1f',
+                  borderRadius: '980px', fontSize: '1.0625rem', fontWeight: 600,
+                  fontFamily: FONT, textDecoration: 'none', letterSpacing: '-0.01em',
+                  border: 'none',
+                  transition: 'background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease',
+                  boxShadow: heroHover
+                    ? '0 0 30px rgba(0,113,227,0.4), 0 4px 20px rgba(0,0,0,0.3)'
+                    : '0 2px 12px rgba(0,0,0,0.2)',
+                }}
+              >
+                Shop Now
+                <ArrowRight size={18} strokeWidth={2} />
+              </Link>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+              <Link
               href="/products"
               onMouseEnter={() => setSecondaryHover(true)}
               onMouseLeave={() => setSecondaryHover(false)}
@@ -302,16 +314,20 @@ export default function HomePage() {
               }}
             >
               Explore
-            </Link>
-          </div>
+              </Link>
+            </motion.div>
+          </motion.div>
         </div>
 
         {/* Product Image Slider */}
         {featured.filter(p => p.image).length > 0 && (
-          <div style={{
+          <motion.div
+            initial={{ opacity: 0, y: 28 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.36, ease: [0.16, 1, 0.3, 1] }}
+            style={{
             overflow: 'hidden', width: '100%', marginTop: '4rem',
             position: 'relative', zIndex: 1,
-            animation: 'heroFadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.5s both',
             maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)',
             WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)',
           }}>
@@ -354,7 +370,7 @@ export default function HomePage() {
                 </Link>
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
       </section>
 

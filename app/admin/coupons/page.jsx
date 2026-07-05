@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/app/components/Toast';
+import { useConfirm } from '@/app/components/ConfirmDialog';
 import { ArrowLeft, Plus, Trash2, Tag } from 'lucide-react';
 
 const C = {
@@ -17,6 +18,7 @@ const C = {
 export default function AdminCouponsPage() {
   const { data: session } = useSession();
   const { showToast } = useToast();
+  const confirmAction = useConfirm();
   const router = useRouter();
 
   const [coupons, setCoupons] = useState([]);
@@ -94,7 +96,7 @@ export default function AdminCouponsPage() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Are you sure you want to delete this coupon?')) return;
+    if (!(await confirmAction({ title: 'Delete this coupon?', confirmLabel: 'Delete' }))) return;
     try {
       const res = await fetch(`/api/admin/coupons/${id}`, { method: 'DELETE' });
       if (res.ok) {

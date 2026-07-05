@@ -100,6 +100,53 @@ export default function CheckoutPage() {
     }
   }, [loaded, cart, router]);
 
+  // Re-check live stock before checkout - catches items another buyer took since the cart was last opened
+  useEffect(() => {
+    if (!loaded || cart.length === 0) return;
+    let cancelled = false;
+    async function verifyStock() {
+      try {
+        const res = await fetch('/api/products');
+        if (!res.ok) return;
+        const data = await res.json();
+        const stockMap = {};
+        (data.products || []).forEach((p) => {
+          (p.variants || []).forEach((v) => {
+            if (v.sku) stockMap[v.sku] = v.stock;
+          });
+        });
+        if (cancelled) return;
+
+        let changed = false;
+        const clamped = cart.map((item) => {
+          const stock = stockMap[item.sku];
+          if (stock !== undefined && item.quantity > stock) {
+            changed = true;
+            return { ...item, quantity: Math.max(stock, 0) };
+          }
+          return item;
+        }).filter((item) => item.quantity > 0);
+
+        if (changed) {
+          setCart(clamped);
+          localStorage.setItem('techmart-cart', JSON.stringify(clamped));
+          window.dispatchEvent(new Event('cart-updated'));
+          if (clamped.length === 0) {
+            showToast('Items in your bag are no longer available', 'error');
+            router.replace('/cart');
+          } else {
+            showToast('Some items in your bag had their quantity reduced due to stock changes', 'warning');
+          }
+        }
+      } catch {
+        // best-effort check
+      }
+    }
+    verifyStock();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
+
   function getInputStyle(fieldName) {
     const hasError = !!errors[fieldName];
     const isFocused = focusedField === fieldName;
@@ -336,9 +383,11 @@ export default function CheckoutPage() {
                       onBlur={() => setFocusedField(null)}
                       placeholder="Enter your full name"
                       style={getInputStyle('fullName')}
+                      aria-invalid={!!errors.fullName}
+                      aria-describedby={errors.fullName ? 'fullName-error' : undefined}
                     />
                     {errors.fullName && (
-                      <p style={{ fontSize: '0.75rem', color: C.red, margin: '0.375rem 0 0', fontWeight: 500 }}>
+                      <p id="fullName-error" style={{ fontSize: '0.75rem', color: C.red, margin: '0.375rem 0 0', fontWeight: 500 }}>
                         {errors.fullName}
                       </p>
                     )}
@@ -358,9 +407,11 @@ export default function CheckoutPage() {
                       onBlur={() => setFocusedField(null)}
                       placeholder="+234 800 000 0000"
                       style={getInputStyle('phone')}
+                      aria-invalid={!!errors.phone}
+                      aria-describedby={errors.phone ? 'phone-error' : undefined}
                     />
                     {errors.phone && (
-                      <p style={{ fontSize: '0.75rem', color: C.red, margin: '0.375rem 0 0', fontWeight: 500 }}>
+                      <p id="phone-error" style={{ fontSize: '0.75rem', color: C.red, margin: '0.375rem 0 0', fontWeight: 500 }}>
                         {errors.phone}
                       </p>
                     )}
@@ -379,9 +430,11 @@ export default function CheckoutPage() {
                       onBlur={() => setFocusedField(null)}
                       placeholder="House number, street name"
                       style={getInputStyle('street')}
+                      aria-invalid={!!errors.street}
+                      aria-describedby={errors.street ? 'street-error' : undefined}
                     />
                     {errors.street && (
-                      <p style={{ fontSize: '0.75rem', color: C.red, margin: '0.375rem 0 0', fontWeight: 500 }}>
+                      <p id="street-error" style={{ fontSize: '0.75rem', color: C.red, margin: '0.375rem 0 0', fontWeight: 500 }}>
                         {errors.street}
                       </p>
                     )}
@@ -401,9 +454,11 @@ export default function CheckoutPage() {
                         onBlur={() => setFocusedField(null)}
                         placeholder="Enter city"
                         style={getInputStyle('city')}
+                        aria-invalid={!!errors.city}
+                        aria-describedby={errors.city ? 'city-error' : undefined}
                       />
                       {errors.city && (
-                        <p style={{ fontSize: '0.75rem', color: C.red, margin: '0.375rem 0 0', fontWeight: 500 }}>
+                        <p id="city-error" style={{ fontSize: '0.75rem', color: C.red, margin: '0.375rem 0 0', fontWeight: 500 }}>
                           {errors.city}
                         </p>
                       )}
@@ -426,6 +481,8 @@ export default function CheckoutPage() {
                           paddingRight: '2.5rem',
                           cursor: 'pointer',
                         }}
+                        aria-invalid={!!errors.state}
+                        aria-describedby={errors.state ? 'state-error' : undefined}
                       >
                         <option value="">Select state</option>
                         {NIGERIAN_STATES.map((s) => (
@@ -433,7 +490,7 @@ export default function CheckoutPage() {
                         ))}
                       </select>
                       {errors.state && (
-                        <p style={{ fontSize: '0.75rem', color: C.red, margin: '0.375rem 0 0', fontWeight: 500 }}>
+                        <p id="state-error" style={{ fontSize: '0.75rem', color: C.red, margin: '0.375rem 0 0', fontWeight: 500 }}>
                           {errors.state}
                         </p>
                       )}

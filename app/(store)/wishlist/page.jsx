@@ -7,7 +7,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, Trash2, ShoppingCart, Eye, X, Package, ShoppingBag, Plus, Minus } from 'lucide-react';
 import { useToast } from '@/app/components/Toast';
+import { useConfirm } from '@/app/components/ConfirmDialog';
 import { getGuestWishlist, toggleGuestWishlist } from '@/lib/guestWishlist';
+import { formatPrice } from '@/lib/formatPrice';
 
 const C = {
   bg: '#f5f5f7', card: '#ffffff', border: '#e8e8ed',
@@ -20,10 +22,6 @@ const C = {
 
 const LOW_STOCK_THRESHOLD = 5;
 const CART_KEY = 'techmart-cart';
-
-function formatPrice(price) {
-  return new Intl.NumberFormat('en-NG').format(price);
-}
 
 function addVariantToCart({ product, variant, color, storage, quantity, toast }) {
   const cartItem = {
@@ -69,6 +67,7 @@ function addVariantToCart({ product, variant, color, storage, quantity, toast })
 export default function WishlistPage() {
   const { data: session, status } = useSession();
   const { showToast } = useToast();
+  const confirmAction = useConfirm();
 
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -126,7 +125,7 @@ export default function WishlistPage() {
   }, [status]);
 
   const handleRemove = async (productId) => {
-    if (!confirm('Remove this item from your wishlist?')) return;
+    if (!(await confirmAction('Remove this item from your wishlist?'))) return;
 
     if (status !== 'authenticated') {
       toggleGuestWishlist(productId);
@@ -171,6 +170,10 @@ export default function WishlistPage() {
     const variant = product.variants?.find(v => v.stock > 0) || product.variants?.[0];
     if (!variant) {
       showToast('No variants available for this product', 'error');
+      return;
+    }
+    if (variant.stock === 0) {
+      showToast('This item is out of stock', 'error');
       return;
     }
     addVariantToCart({
@@ -396,7 +399,7 @@ export default function WishlistPage() {
                       margin: '0 0 1rem',
                       letterSpacing: '-0.02em',
                     }}>
-                      From {'₦'}{startingPrice.toLocaleString()}
+                      From {formatPrice(startingPrice)}
                     </p>
                   )}
 
@@ -594,6 +597,8 @@ export default function WishlistPage() {
                       key={color.name}
                       onClick={() => setQuickAddColor(color.name)}
                       title={color.name}
+                      aria-label={`Color: ${color.name}`}
+                      aria-pressed={quickAddColor === color.name}
                       style={{
                         width: '28px',
                         height: '28px',
@@ -666,7 +671,7 @@ export default function WishlistPage() {
                   letterSpacing: '-0.03em',
                 }}
               >
-                {quickAddVariant ? `₦${formatPrice(quickAddVariant.price)}` : '—'}
+                {quickAddVariant ? formatPrice(quickAddVariant.price) : '—'}
               </span>
               <span
                 style={{

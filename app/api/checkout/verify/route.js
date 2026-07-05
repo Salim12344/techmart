@@ -58,6 +58,16 @@ export async function GET(req) {
       return Response.json({ verified: true });
     }
 
+    // Payment was cancelled/abandoned/failed on Paystack's side - release the pending order
+    // so the customer isn't left with a dangling order and can freely retry checkout.
+    if (paystackData.status) {
+      await connectDB();
+      await Order.findOneAndUpdate(
+        { paymentReference: reference, status: 'pending' },
+        { $set: { status: 'cancelled' } }
+      );
+    }
+
     return Response.json({ verified: false });
   } catch (error) {
     console.error('Payment verification error:', error);

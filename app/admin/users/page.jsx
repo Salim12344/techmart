@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
+import { formatPrice } from '@/lib/formatPrice';
 
 export default function AdminUsersPage() {
   const { data: session, status } = useSession();
@@ -270,7 +271,7 @@ export default function AdminUsersPage() {
                     }}>
                       <span style={{ color: '#86868b' }}>{order.orderNumber}</span>
                       <span style={{ fontWeight: 600, color: '#1d1d1f' }}>
-                        ₦{order.totalAmount?.toLocaleString()}
+                        {formatPrice(order.totalAmount)}
                       </span>
                     </div>
                   ))

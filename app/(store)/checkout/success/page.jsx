@@ -36,14 +36,15 @@ function SuccessContent() {
       return;
     }
 
-    localStorage.removeItem('techmart-cart');
-    window.dispatchEvent(new Event('cart-updated'));
-
     async function verifyPayment() {
       try {
         const res = await fetch(`/api/checkout/verify?reference=${reference}`);
         const data = await res.json();
         setVerified(data.verified === true);
+        if (data.verified === true) {
+          localStorage.removeItem('techmart-cart');
+          window.dispatchEvent(new Event('cart-updated'));
+        }
       } catch {
         setVerified(false);
       } finally {
@@ -97,7 +98,7 @@ function SuccessContent() {
           fontSize: '2rem', fontWeight: 700, color: C.text,
           letterSpacing: '-0.03em', margin: '0 0 0.75rem',
         }}>
-          {verified ? 'Order Confirmed' : 'Payment Pending'}
+          {verified ? 'Order Confirmed' : 'Payment Not Completed'}
         </h1>
 
         <p style={{
@@ -106,7 +107,7 @@ function SuccessContent() {
         }}>
           {verified
             ? 'Thank you for your purchase. You\'ll receive a confirmation email shortly with your order details.'
-            : 'Your payment is being processed. If it was successful, your order will be confirmed shortly.'
+            : 'Your payment was cancelled or did not go through. Your bag is still saved, so you can try again.'
           }
         </p>
 
@@ -162,23 +163,47 @@ function SuccessContent() {
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link href="/orders" style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-            padding: '0.875rem 1.75rem', background: C.blue, color: '#fff',
-            borderRadius: 980, fontSize: '0.9375rem', fontWeight: 500,
-            textDecoration: 'none',
-          }}>
-            View Orders
-          </Link>
-          <Link href="/" style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-            padding: '0.875rem 1.75rem',
-            background: 'rgba(0,0,0,0.04)', color: C.text,
-            borderRadius: 980, fontSize: '0.9375rem', fontWeight: 500,
-            textDecoration: 'none',
-          }}>
-            Continue Shopping <ArrowRight size={16} />
-          </Link>
+          {verified ? (
+            <>
+              <Link href="/orders" style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.875rem 1.75rem', background: C.blue, color: '#fff',
+                borderRadius: 980, fontSize: '0.9375rem', fontWeight: 500,
+                textDecoration: 'none',
+              }}>
+                View Orders
+              </Link>
+              <Link href="/" style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.875rem 1.75rem',
+                background: 'rgba(0,0,0,0.04)', color: C.text,
+                borderRadius: 980, fontSize: '0.9375rem', fontWeight: 500,
+                textDecoration: 'none',
+              }}>
+                Continue Shopping <ArrowRight size={16} />
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/checkout" style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.875rem 1.75rem', background: C.blue, color: '#fff',
+                borderRadius: 980, fontSize: '0.9375rem', fontWeight: 500,
+                textDecoration: 'none',
+              }}>
+                Try Again
+              </Link>
+              <Link href="/cart" style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.875rem 1.75rem',
+                background: 'rgba(0,0,0,0.04)', color: C.text,
+                borderRadius: 980, fontSize: '0.9375rem', fontWeight: 500,
+                textDecoration: 'none',
+              }}>
+                Back to Bag
+              </Link>
+            </>
+          )}
         </div>
       </div>
 

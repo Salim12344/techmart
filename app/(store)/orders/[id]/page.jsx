@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/app/components/Toast';
+import { useConfirm } from '@/app/components/ConfirmDialog';
 import { ArrowLeft, Package, MapPin, Calendar, Check, AlertTriangle, XCircle } from 'lucide-react';
 
 const C = {
@@ -41,6 +42,7 @@ export default function OrderDetailPage({ params }) {
   const { data: session, status: authStatus } = useSession();
   const router = useRouter();
   const { showToast } = useToast();
+  const confirmAction = useConfirm();
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -113,7 +115,7 @@ export default function OrderDetailPage({ params }) {
   };
 
   const handleCancelOrder = async () => {
-    if (!confirm('Are you sure you want to cancel this order? You will receive a refund.')) return;
+    if (!(await confirmAction({ title: 'Cancel this order?', message: 'You will receive a refund.', confirmLabel: 'Cancel Order' }))) return;
     setCancelling(true);
     try {
       const res = await fetch(`/api/orders/${id}/cancel`, { method: 'POST' });

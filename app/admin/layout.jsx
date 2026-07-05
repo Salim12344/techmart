@@ -6,11 +6,13 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ToastProvider } from '@/app/components/Toast';
+import { ConfirmProvider, useConfirm } from '@/app/components/ConfirmDialog';
 import { LayoutDashboard, Package, ShoppingCart, Users, ChevronRight, ChevronLeft, MessageSquare, MessageCircle, Menu, X, AlertTriangle, Tag } from 'lucide-react';
 
 function AdminSidebar({ mobileOpen, setMobileOpen }) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const confirmAction = useConfirm();
   const [collapsed, setCollapsed] = useState(false);
 
   // Close mobile sidebar on route change
@@ -201,8 +203,8 @@ function AdminSidebar({ mobileOpen, setMobileOpen }) {
             </div>
           </div>
           <button
-            onClick={() => {
-              if (confirm('Are you sure you want to sign out?')) {
+            onClick={async () => {
+              if (await confirmAction('Are you sure you want to sign out?')) {
                 localStorage.removeItem('techmart-cart');
                 localStorage.removeItem('techmart-wishlist');
                 window.dispatchEvent(new Event('cart-updated'));
@@ -353,9 +355,11 @@ export default function AdminLayout({ children }) {
   return (
     <SessionProvider>
       <ToastProvider>
-        <AdminLayoutInner>
-          {children}
-        </AdminLayoutInner>
+        <ConfirmProvider>
+          <AdminLayoutInner>
+            {children}
+          </AdminLayoutInner>
+        </ConfirmProvider>
       </ToastProvider>
     </SessionProvider>
   );

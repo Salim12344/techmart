@@ -71,7 +71,7 @@ export default function RegisterPage() {
       const res = await fetch('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: form.email, purpose: 'SIGNUP_VERIFY' }),
+        body: JSON.stringify({ email: form.email.trim(), purpose: 'SIGNUP_VERIFY' }),
       });
       const data = await res.json();
       if (!res.ok) { showToast(data.error || 'Failed to send OTP'); return; }
@@ -104,9 +104,9 @@ export default function RegisterPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: form.name,
-          email: form.email,
-          phone: form.phone,
+          name: form.name.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim(),
           password: form.password,
           otp: otpCode,
           otpTokenId: otpToken,
@@ -143,7 +143,7 @@ export default function RegisterPage() {
       const res = await fetch('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: form.email, purpose: 'SIGNUP_VERIFY' }),
+        body: JSON.stringify({ email: form.email.trim(), purpose: 'SIGNUP_VERIFY' }),
       });
       const data = await res.json();
       if (!res.ok) { showToast(data.error || 'Failed to resend OTP'); return; }

@@ -92,7 +92,7 @@ function SupportTicketContent({ params }) {
       const res = await fetch(`/api/support/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: reply }),
+        body: JSON.stringify({ message: reply.trim() }),
       });
       const data = await res.json();
       if (!res.ok) { showToast(data.error || 'Failed to send message'); return; }

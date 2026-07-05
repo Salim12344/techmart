@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/app/components/Toast';
+import { useConfirm } from '@/app/components/ConfirmDialog';
 import { ArrowLeft } from 'lucide-react';
+import { formatPrice } from '@/lib/formatPrice';
 
 const C = {
   bg: '#f5f5f7', card: '#ffffff', border: '#e8e8ed',
@@ -31,6 +33,7 @@ const REASON_LABELS = {
 export default function AdminDisputesPage() {
   const { data: session } = useSession();
   const { showToast } = useToast();
+  const confirmAction = useConfirm();
   const router = useRouter();
 
   const [disputes, setDisputes] = useState([]);
@@ -62,7 +65,7 @@ export default function AdminDisputesPage() {
 
     if (status === 'APPROVED') {
       const amount = selectedDispute.orderId?.totalAmount;
-      if (!confirm(`This will refund ₦${amount?.toLocaleString()} to the customer. Continue?`)) return;
+      if (!(await confirmAction({ title: 'Approve refund?', message: `This will refund ${formatPrice(amount)} to the customer.`, confirmLabel: 'Refund', destructive: false }))) return;
     }
 
     setProcessing(true);
@@ -244,13 +247,13 @@ export default function AdminDisputesPage() {
                     {selectedDispute.orderId.items?.map((item, i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
                         <span style={{ color: C.muted }}>{item.productName} x{item.quantity}</span>
-                        <span style={{ color: C.text, fontWeight: 500 }}>₦{(item.unitPrice * item.quantity).toLocaleString()}</span>
+                        <span style={{ color: C.text, fontWeight: 500 }}>{formatPrice(item.unitPrice * item.quantity)}</span>
                       </div>
                     ))}
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9375rem', fontWeight: 700, color: C.text, marginTop: '0.75rem', paddingTop: '0.5rem', borderTop: `1px solid ${C.border}` }}>
                     <span>Total</span>
-                    <span style={{ color: C.blue }}>₦{selectedDispute.orderId.totalAmount?.toLocaleString()}</span>
+                    <span style={{ color: C.blue }}>{formatPrice(selectedDispute.orderId.totalAmount)}</span>
                   </div>
                 </div>
               )}

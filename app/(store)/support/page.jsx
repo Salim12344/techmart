@@ -4,7 +4,10 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/app/components/Toast';
-import { MessageSquare, Plus, ChevronRight, Clock } from 'lucide-react';
+import { MessageSquare, Plus, ChevronRight, Clock, Phone } from 'lucide-react';
+
+const SUPPORT_PHONE = '+2348001234567';
+const SUPPORT_PHONE_DISPLAY = '+234 800 123 4567';
 
 const C = {
   bg: '#f5f5f7', card: '#ffffff', border: '#e8e8ed',
@@ -85,7 +88,7 @@ function SupportContent() {
       const res = await fetch('/api/support', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, subject: form.subject.trim(), message: form.message.trim() }),
       });
       const data = await res.json();
       if (!res.ok) { showToast(data.error || 'Failed to create ticket'); return; }
@@ -152,6 +155,38 @@ function SupportContent() {
           {showForm ? 'Cancel' : 'New Ticket'}
         </button>
       </div>
+
+      {/* Call Us */}
+      <a
+        href={`tel:${SUPPORT_PHONE}`}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: '1rem', padding: '1.25rem 1.5rem', borderRadius: '18px',
+          background: C.card, border: `1px solid ${C.border}`,
+          marginBottom: '1.5rem', textDecoration: 'none',
+          transition: 'box-shadow 0.2s',
+        }}
+        className="support-call-card"
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+          <div style={{
+            width: '44px', height: '44px', borderRadius: '14px',
+            background: C.greenBg, display: 'flex', alignItems: 'center',
+            justifyContent: 'center', flexShrink: 0,
+          }}>
+            <Phone size={20} color={C.green} />
+          </div>
+          <div>
+            <p style={{ fontSize: '0.9375rem', fontWeight: 600, color: C.text, margin: 0 }}>
+              Prefer to talk? Call us
+            </p>
+            <p style={{ fontSize: '0.8125rem', color: C.muted, margin: '0.125rem 0 0' }}>
+              {SUPPORT_PHONE_DISPLAY} &middot; Mon-Sat, 9am-6pm
+            </p>
+          </div>
+        </div>
+        <ChevronRight size={18} color={C.muted} />
+      </a>
 
       {/* New Ticket Form */}
       {showForm && (
@@ -322,6 +357,7 @@ function SupportContent() {
           to { opacity: 1; transform: translateY(0); }
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .support-call-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
         @media (max-width: 768px) {
           .support-page { padding: 1.5rem 0.75rem !important; }
           .support-page h1 { font-size: 1.5rem !important; }

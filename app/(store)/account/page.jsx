@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { User, Package, Heart, LogOut, ChevronRight, Shield, Pencil, Lock, Check, X, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/app/components/Toast';
+import { useConfirm } from '@/app/components/ConfirmDialog';
 
 const C = {
   bg: '#f5f5f7', card: '#ffffff', border: '#e8e8ed',
@@ -36,6 +37,7 @@ export default function AccountPage() {
   const { data: session, status, update } = useSession();
   const router = useRouter();
   const { showToast } = useToast();
+  const confirmAction = useConfirm();
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -86,7 +88,7 @@ export default function AccountPage() {
       const res = await fetch('/api/account', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(profileForm),
+        body: JSON.stringify({ name: profileForm.name.trim(), phone: profileForm.phone.trim() }),
       });
       const data = await res.json();
       if (!res.ok) { showToast(data.error || 'Failed to update'); return; }
@@ -430,8 +432,8 @@ export default function AccountPage() {
           <h3 style={{ fontSize: '1rem', fontWeight: 600, color: C.text, margin: '0 0 0.125rem' }}>Sign Out</h3>
           <p style={{ fontSize: '0.8125rem', color: C.muted, margin: 0 }}>Sign out of your account</p>
         </div>
-        <button onClick={() => {
-          if (confirm('Are you sure you want to sign out?')) {
+        <button onClick={async () => {
+          if (await confirmAction('Are you sure you want to sign out?')) {
             localStorage.removeItem('techmart-cart');
             localStorage.removeItem('techmart-wishlist');
             window.dispatchEvent(new Event('cart-updated'));

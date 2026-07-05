@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useToast } from '@/app/components/Toast';
+import { useConfirm } from '@/app/components/ConfirmDialog';
 import { ArrowLeft } from 'lucide-react';
 
 // ── Shared inline style tokens ───────────────────────────────────
@@ -123,6 +124,7 @@ const DEFAULT_SPEC_FIELDS = {
 export default function AdminProductsPage() {
   const { data: session, status } = useSession();
   const { showToast } = useToast();
+  const confirmAction = useConfirm();
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState('products');
@@ -341,7 +343,7 @@ export default function AdminProductsPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this product?')) return;
+    if (!(await confirmAction({ title: 'Delete this product?', message: 'This cannot be undone.', confirmLabel: 'Delete' }))) return;
     try {
       const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
       const data = await res.json();
@@ -362,8 +364,8 @@ export default function AdminProductsPage() {
     setNewSpecField({ key: '', label: '', type: 'text', unit: '', placeholder: '' });
   };
 
-  const removeSpecField = (key) => {
-    if (!confirm(`Remove "${key}" field?`)) return;
+  const removeSpecField = async (key) => {
+    if (!(await confirmAction(`Remove "${key}" field?`))) return;
     setCategoryForm(prev => ({ ...prev, specFields: prev.specFields.filter(f => f.key !== key) }));
   };
 
@@ -390,7 +392,7 @@ export default function AdminProductsPage() {
   };
 
   const handleDeleteCategory = async (id) => {
-    if (!confirm('Delete this category?')) return;
+    if (!(await confirmAction({ title: 'Delete this category?', message: 'This cannot be undone.', confirmLabel: 'Delete' }))) return;
     try {
       const res = await fetch(`/api/admin/categories/${id}`, { method: 'DELETE' });
       const data = await res.json();
@@ -593,7 +595,7 @@ export default function AdminProductsPage() {
                       {form.storageOptions.map((s, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', background: C.card, borderRadius: '980px', border: `1px solid ${C.border}`, fontSize: '0.875rem', color: C.text }}>
                           {s}
-                          <button type="button" onClick={() => removeStorage(i)} style={{ background: 'none', border: 'none', color: C.red, cursor: 'pointer', fontSize: '0.875rem', lineHeight: 1, padding: 0 }}>✕</button>
+                          <button type="button" onClick={() => removeStorage(i)} aria-label={`Remove storage option ${s}`} style={{ background: 'none', border: 'none', color: C.red, cursor: 'pointer', fontSize: '0.875rem', lineHeight: 1, padding: 0 }}>✕</button>
                         </div>
                       ))}
                     </div>
@@ -735,7 +737,7 @@ export default function AdminProductsPage() {
                   ))}
                 </div>
                 {stockFilterValue && (
-                  <button onClick={() => setStockFilterValue('')} style={{ background: 'none', border: 'none', color: C.muted, cursor: 'pointer', fontSize: '0.875rem', padding: 0 }}>✕</button>
+                  <button onClick={() => setStockFilterValue('')} aria-label="Clear stock filter" style={{ background: 'none', border: 'none', color: C.muted, cursor: 'pointer', fontSize: '0.875rem', padding: 0 }}>✕</button>
                 )}
               </div>
             </div>
