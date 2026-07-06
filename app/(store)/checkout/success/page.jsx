@@ -4,6 +4,8 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle, Package, ArrowRight, AlertCircle } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { clearCart } from '@/lib/cart';
 
 const C = {
   bg: '#f5f5f7', card: '#ffffff', border: '#e8e8ed',
@@ -26,24 +28,27 @@ export default function CheckoutSuccessPage() {
 function SuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { status } = useSession();
   const reference = searchParams.get('reference');
   const [verifying, setVerifying] = useState(true);
   const [verified, setVerified] = useState(false);
+  const [oversold, setOversold] = useState(false);
 
   useEffect(() => {
     if (!reference) {
       router.replace('/');
       return;
     }
+    if (status === 'loading') return;
 
     async function verifyPayment() {
       try {
         const res = await fetch(`/api/checkout/verify?reference=${reference}`);
         const data = await res.json();
         setVerified(data.verified === true);
+        setOversold(data.reason === 'oversold');
         if (data.verified === true) {
-          localStorage.removeItem('techmart-cart');
-          window.dispatchEvent(new Event('cart-updated'));
+          await clearCart(status);
         }
       } catch {
         setVerified(false);
@@ -53,7 +58,7 @@ function SuccessContent() {
     }
 
     verifyPayment();
-  }, [reference, router]);
+  }, [reference, router, status]);
 
   if (!reference) return null;
 
@@ -98,7 +103,7 @@ function SuccessContent() {
           fontSize: '2rem', fontWeight: 700, color: C.text,
           letterSpacing: '-0.03em', margin: '0 0 0.75rem',
         }}>
-          {verified ? 'Order Confirmed' : 'Payment Not Completed'}
+          {verified ? 'Order Confirmed' : oversold ? 'Item Sold Out' : 'Payment Not Completed'}
         </h1>
 
         <p style={{
@@ -107,6 +112,8 @@ function SuccessContent() {
         }}>
           {verified
             ? 'Thank you for your purchase. You\'ll receive a confirmation email shortly with your order details.'
+            : oversold
+            ? 'Someone else bought the last unit of an item in your order while your payment was processing. You have not been charged - any payment taken has been automatically refunded to your original payment method.'
             : 'Your payment was cancelled or did not go through. Your bag is still saved, so you can try again.'
           }
         </p>

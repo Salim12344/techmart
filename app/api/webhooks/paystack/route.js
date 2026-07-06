@@ -1,8 +1,8 @@
 import crypto from 'crypto';
 import { connectDB } from '@/lib/db';
 import Order from '@/models/order';
-import Product from '@/models/product';
 import { sendOrderConfirmationEmail } from '@/lib/email';
+import { fulfillOrRefund } from '@/lib/orderFulfillment';
 
 export async function POST(req) {
   const body = await req.text();
@@ -32,28 +32,22 @@ export async function POST(req) {
       );
 
       if (order) {
-        // Deduct stock for each item
-        for (const item of order.items) {
-          await Product.updateOne(
-            { _id: item.productId, 'variants.color': item.color, 'variants.storage': item.storage },
-            { $inc: { 'variants.$.stock': -item.quantity } }
-          );
-        }
-      }
+        const { fulfilled } = await fulfillOrRefund(order, customer?.email);
 
-      if (order && customer?.email) {
-        try {
-          await sendOrderConfirmationEmail(customer.email, {
-            orderNumber: order.orderNumber,
-            total: order.totalAmount,
-            items: order.items,
-            deliveryWindow: {
-              earliest: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-              latest: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-            },
-          });
-        } catch (emailErr) {
-          console.error('Order email failed:', emailErr);
+        if (fulfilled && customer?.email) {
+          try {
+            await sendOrderConfirmationEmail(customer.email, {
+              orderNumber: order.orderNumber,
+              total: order.totalAmount,
+              items: order.items,
+              deliveryWindow: {
+                earliest: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+                latest: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+              },
+            });
+          } catch (emailErr) {
+            console.error('Order email failed:', emailErr);
+          }
         }
       }
     } catch (err) {

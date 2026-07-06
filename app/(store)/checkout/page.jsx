@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, CreditCard, ArrowLeft, Truck, Lock, ShoppingBag, Check, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '@/app/components/Toast';
+import { getCart, saveCart } from '@/lib/cart';
 
 const C = {
   bg: '#f5f5f7', card: '#ffffff', border: '#e8e8ed',
@@ -87,23 +88,18 @@ export default function CheckoutPage() {
     }
   }, [session]);
 
-  // Load cart
+  // Load cart (DB-backed when signed in, localStorage for guests)
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('techmart-cart');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setCart(parsed);
-          setLoaded(true);
-          return;
-        }
+    if (status === 'loading') return;
+    let cancelled = false;
+    getCart(status).then((items) => {
+      if (!cancelled) {
+        setCart(items);
+        setLoaded(true);
       }
-    } catch {
-      // ignore
-    }
-    setLoaded(true);
-  }, []);
+    });
+    return () => { cancelled = true; };
+  }, [status]);
 
   // Redirect if cart is empty (after load)
   useEffect(() => {
@@ -112,13 +108,15 @@ export default function CheckoutPage() {
     }
   }, [loaded, cart, router]);
 
-  // Re-check live stock before checkout - catches items another buyer took since the cart was last opened
+  // Re-check live stock before checkout - catches items another buyer took since the cart was last opened.
+  // Out-of-stock items are never silently dropped here - the customer is sent back to
+  // the cart (where they show as "Out of Stock") to remove them before proceeding.
   useEffect(() => {
     if (!loaded || cart.length === 0) return;
     let cancelled = false;
     async function verifyStock() {
       try {
-        const res = await fetch('/api/products');
+        const res = await fetch('/api/products', { cache: 'no-store' });
         if (!res.ok) return;
         const data = await res.json();
         const stockMap = {};
@@ -129,26 +127,27 @@ export default function CheckoutPage() {
         });
         if (cancelled) return;
 
+        const hasOutOfStock = cart.some((item) => stockMap[item.sku] !== undefined && stockMap[item.sku] <= 0);
+        if (hasOutOfStock) {
+          showToast('Some items in your bag are no longer available - remove them to continue', 'error');
+          router.replace('/cart');
+          return;
+        }
+
         let changed = false;
         const clamped = cart.map((item) => {
           const stock = stockMap[item.sku];
           if (stock !== undefined && item.quantity > stock) {
             changed = true;
-            return { ...item, quantity: Math.max(stock, 0) };
+            return { ...item, quantity: stock };
           }
           return item;
-        }).filter((item) => item.quantity > 0);
+        });
 
         if (changed) {
           setCart(clamped);
-          localStorage.setItem('techmart-cart', JSON.stringify(clamped));
-          window.dispatchEvent(new Event('cart-updated'));
-          if (clamped.length === 0) {
-            showToast('Items in your bag are no longer available', 'error');
-            router.replace('/cart');
-          } else {
-            showToast('Some items in your bag had their quantity reduced due to stock changes', 'warning');
-          }
+          saveCart(clamped, status);
+          showToast('Some items in your bag had their quantity reduced due to stock changes', 'warning');
         }
       } catch {
         // best-effort check

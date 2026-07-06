@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useToast } from '@/app/components/Toast';
 import { getGuestWishlist, toggleGuestWishlist } from '@/lib/guestWishlist';
+import { getCart, saveCart } from '@/lib/cart';
 
 const C = {
   bg: '#f5f5f7', card: '#ffffff', border: '#e8e8ed',
@@ -52,10 +53,31 @@ function StarRating({ rating, size = 14 }) {
   );
 }
 
-function addToCart(product, toast) {
+async function getLiveStock(productId, sku) {
+  try {
+    const res = await fetch(`/api/products/${productId}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const liveVariant = data.product?.variants?.find((v) => v.sku === sku);
+    return liveVariant ? liveVariant.stock : 0;
+  } catch {
+    return null; // re-check failed - caller falls back to its own data rather than blocking the user
+  }
+}
+
+async function addToCart(product, toast, authStatus) {
   const variant = product.variants?.find((v) => v.stock > 0) || product.variants?.[0];
   if (!variant) {
     toast('No variants available for this product', 'error');
+    return;
+  }
+
+  // Re-check live stock at the moment of adding - someone else may have bought
+  // the last unit since this page's product list was fetched.
+  const liveStock = await getLiveStock(product._id, variant.sku);
+  const stock = liveStock ?? variant.stock;
+  if (stock <= 0) {
+    toast('This item just sold out', 'error');
     return;
   }
 
@@ -70,34 +92,34 @@ function addToCart(product, toast) {
     image: product.colors?.find((c) => c.name === variant.color)?.image || product.image || '',
   };
 
-  let cart = [];
-  try {
-    cart = JSON.parse(localStorage.getItem('techmart-cart') || '[]');
-  } catch {
-    cart = [];
-  }
+  const cart = await getCart(authStatus);
 
   const existingIdx = cart.findIndex((c) => c.sku === cartItem.sku);
   if (existingIdx > -1) {
-    if (cart[existingIdx].quantity >= variant.stock) {
-      toast(`Only ${variant.stock} in stock`, 'error');
+    if (cart[existingIdx].quantity >= stock) {
+      toast(`Only ${stock} in stock`, 'error');
       return;
     }
     cart[existingIdx].quantity += 1;
   } else {
-    cartItem.quantity = Math.min(1, variant.stock);
+    cartItem.quantity = Math.min(1, stock);
     cart.push(cartItem);
   }
 
-  localStorage.setItem('techmart-cart', JSON.stringify(cart));
-  window.dispatchEvent(new Event('cart-updated'));
+  await saveCart(cart, authStatus);
   toast(`${product.name} added to cart`, 'success');
 }
 
 const LOW_STOCK_THRESHOLD = 5;
-const CART_KEY = 'techmart-cart';
 
-function addVariantToCart({ product, variant, color, storage, quantity, toast }) {
+async function addVariantToCart({ product, variant, color, storage, quantity, toast, authStatus }) {
+  const liveStock = await getLiveStock(product._id, variant.sku);
+  const stock = liveStock ?? variant.stock;
+  if (stock <= 0) {
+    toast('This item just sold out', 'error');
+    return;
+  }
+
   const cartItem = {
     productId: product._id,
     name: product.name,
@@ -109,32 +131,26 @@ function addVariantToCart({ product, variant, color, storage, quantity, toast })
     image: product.colors?.find((c) => c.name === color)?.image || product.image || '',
   };
 
-  let cart = [];
-  try {
-    cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
-  } catch {
-    cart = [];
-  }
+  const cart = await getCart(authStatus);
 
   const existingIdx = cart.findIndex((c) => c.sku === cartItem.sku);
   if (existingIdx > -1) {
     const newQty = cart[existingIdx].quantity + quantity;
-    if (newQty > variant.stock) {
-      if (cart[existingIdx].quantity >= variant.stock) {
-        toast(`Only ${variant.stock} in stock`, 'error');
+    if (newQty > stock) {
+      if (cart[existingIdx].quantity >= stock) {
+        toast(`Only ${stock} in stock`, 'error');
         return;
       }
-      cart[existingIdx].quantity = variant.stock;
+      cart[existingIdx].quantity = stock;
     } else {
       cart[existingIdx].quantity = newQty;
     }
   } else {
-    cartItem.quantity = Math.min(quantity, variant.stock);
+    cartItem.quantity = Math.min(quantity, stock);
     cart.push(cartItem);
   }
 
-  localStorage.setItem(CART_KEY, JSON.stringify(cart));
-  window.dispatchEvent(new Event('cart-updated'));
+  await saveCart(cart, authStatus);
   toast(`${quantity} × ${product.name} added to cart`, 'success');
 }
 
@@ -176,17 +192,16 @@ function ProductsContent() {
   const [quickAddQuantity, setQuickAddQuantity] = useState(1);
 
   useEffect(() => {
-    function syncCart() {
-      try {
-        const cart = JSON.parse(localStorage.getItem('techmart-cart') || '[]');
-        setCartProductIds(new Set(cart.map(item => item.productId)));
-      } catch { setCartProductIds(new Set()); }
+    if (authStatus === 'loading') return;
+    async function syncCart() {
+      const cart = await getCart(authStatus);
+      setCartProductIds(new Set(cart.map(item => item.productId)));
     }
     syncCart();
     window.addEventListener('cart-updated', syncCart);
     window.addEventListener('storage', syncCart);
     return () => { window.removeEventListener('cart-updated', syncCart); window.removeEventListener('storage', syncCart); };
-  }, []);
+  }, [authStatus]);
 
   useEffect(() => {
     try {
@@ -260,29 +275,28 @@ function ProductsContent() {
   }
 
   function toggleCompare(product) {
-    setCompareIds((prev) => {
-      if (prev.includes(product._id)) {
-        const updated = prev.filter((id) => id !== product._id);
-        localStorage.setItem('techmart-compare', JSON.stringify(updated));
-        showToast('Removed from compare', 'info');
-        return updated;
-      }
-      if (prev.length >= 3) {
-        showToast('You can compare up to 3 products', 'warning');
-        return prev;
-      }
-      if (prev.length > 0) {
-        const existingProduct = products.find((p) => p._id === prev[0]);
-        if (existingProduct && existingProduct.category !== product.category) {
-          showToast(`You can only compare products in the same category (${existingProduct.category})`, 'warning');
-          return prev;
-        }
-      }
-      const updated = [...prev, product._id];
+    if (compareIds.includes(product._id)) {
+      const updated = compareIds.filter((id) => id !== product._id);
+      setCompareIds(updated);
       localStorage.setItem('techmart-compare', JSON.stringify(updated));
-      showToast(`${product.name} added to compare`, 'success');
-      return updated;
-    });
+      showToast('Removed from compare', 'info');
+      return;
+    }
+    if (compareIds.length >= 3) {
+      showToast('You can compare up to 3 products', 'warning');
+      return;
+    }
+    if (compareIds.length > 0) {
+      const existingProduct = products.find((p) => p._id === compareIds[0]);
+      if (existingProduct && existingProduct.category !== product.category) {
+        showToast(`You can only compare products in the same category (${existingProduct.category})`, 'warning');
+        return;
+      }
+    }
+    const updated = [...compareIds, product._id];
+    setCompareIds(updated);
+    localStorage.setItem('techmart-compare', JSON.stringify(updated));
+    showToast(`${product.name} added to compare`, 'success');
   }
 
   useEffect(() => {
@@ -322,7 +336,7 @@ function ProductsContent() {
       setQuickAddStorage(product.storageOptions?.[0] || null);
       setQuickAddQuantity(1);
     } else {
-      addToCart(product, showToast);
+      addToCart(product, showToast, authStatus);
       setJustAddedId(product._id);
       setTimeout(() => setJustAddedId((id) => (id === product._id ? null : id)), 1200);
     }
@@ -350,7 +364,7 @@ function ProductsContent() {
 
   const quickAddStockStatus = useMemo(() => {
     if (!quickAddVariant) return { label: 'Unavailable', color: C.muted, bg: '#f0f0f0', dot: C.muted };
-    if (quickAddVariant.stock === 0)
+    if (quickAddVariant.stock <= 0)
       return { label: 'Out of Stock', color: C.red, bg: C.redBg, dot: C.red };
     if (quickAddVariant.stock <= LOW_STOCK_THRESHOLD)
       return { label: `Low Stock (${quickAddVariant.stock} left)`, color: C.orange, bg: C.orangeBg, dot: C.orange };
@@ -358,7 +372,7 @@ function ProductsContent() {
   }, [quickAddVariant]);
 
   function handleQuickAddSubmit() {
-    if (!quickAddProduct || !quickAddVariant || quickAddVariant.stock === 0) return;
+    if (!quickAddProduct || !quickAddVariant || quickAddVariant.stock <= 0) return;
     addVariantToCart({
       product: quickAddProduct,
       variant: quickAddVariant,
@@ -366,6 +380,7 @@ function ProductsContent() {
       storage: quickAddStorage,
       quantity: quickAddQuantity,
       toast: showToast,
+      authStatus,
     });
     closeQuickAdd();
   }
@@ -1159,7 +1174,7 @@ function ProductsContent() {
                         e.stopPropagation();
                         handleAddToCartClick(product);
                       }}
-                      disabled={totalStock === 0}
+                      disabled={totalStock <= 0}
                       whileTap={{ scale: 0.95 }}
                       style={{
                         display: 'flex',
@@ -1171,11 +1186,11 @@ function ProductsContent() {
                         marginTop: '0.875rem',
                         borderRadius: '980px',
                         border: 'none',
-                        background: totalStock === 0 ? '#e8e8ed' : justAddedId === product._id ? C.green : C.blue,
-                        color: totalStock === 0 ? C.muted : '#ffffff',
+                        background: totalStock <= 0 ? '#e8e8ed' : justAddedId === product._id ? C.green : C.blue,
+                        color: totalStock <= 0 ? C.muted : '#ffffff',
                         fontSize: '0.8125rem',
                         fontWeight: 600,
-                        cursor: totalStock === 0 ? 'not-allowed' : 'pointer',
+                        cursor: totalStock <= 0 ? 'not-allowed' : 'pointer',
                         fontFamily: 'inherit',
                         transition: 'background 0.3s ease',
                         pointerEvents: 'auto',
@@ -1219,7 +1234,7 @@ function ProductsContent() {
 
       {/* Compare Bar */}
       {compareIds.length > 0 && (
-        <div style={{
+        <div className="products-compare-bar" style={{
           position: 'fixed',
           bottom: 0,
           left: 0,
@@ -1513,7 +1528,7 @@ function ProductsContent() {
                 style={{
                   fontSize: '1.5rem',
                   fontWeight: 700,
-                  color: quickAddVariant?.stock === 0 ? C.muted : C.text,
+                  color: quickAddVariant?.stock <= 0 ? C.muted : C.text,
                   letterSpacing: '-0.03em',
                 }}
               >
@@ -1593,7 +1608,7 @@ function ProductsContent() {
             {/* Add to Cart */}
             <button
               onClick={handleQuickAddSubmit}
-              disabled={!quickAddVariant || quickAddVariant.stock === 0}
+              disabled={!quickAddVariant || quickAddVariant.stock <= 0}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1603,17 +1618,17 @@ function ProductsContent() {
                 padding: '0.875rem',
                 borderRadius: '980px',
                 border: 'none',
-                background: !quickAddVariant || quickAddVariant.stock === 0 ? '#e8e8ed' : C.blue,
-                color: !quickAddVariant || quickAddVariant.stock === 0 ? C.muted : '#ffffff',
+                background: !quickAddVariant || quickAddVariant.stock <= 0 ? '#e8e8ed' : C.blue,
+                color: !quickAddVariant || quickAddVariant.stock <= 0 ? C.muted : '#ffffff',
                 fontSize: '0.9375rem',
                 fontWeight: 600,
-                cursor: !quickAddVariant || quickAddVariant.stock === 0 ? 'not-allowed' : 'pointer',
+                cursor: !quickAddVariant || quickAddVariant.stock <= 0 ? 'not-allowed' : 'pointer',
                 fontFamily: 'inherit',
                 transition: 'all 0.25s ease',
               }}
             >
               <ShoppingBag size={16} />
-              {!quickAddVariant || quickAddVariant.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+              {!quickAddVariant || quickAddVariant.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}
             </button>
           </div>
         </div>
@@ -1640,6 +1655,9 @@ function ProductsContent() {
           .products-grid {
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 0.75rem !important;
+          }
+          .products-compare-bar {
+            bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
           }
         }
       `}</style>

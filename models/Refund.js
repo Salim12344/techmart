@@ -10,7 +10,6 @@ const RefundSchema = new mongoose.Schema({
   disputeId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Dispute',
-    required: true,
   },
   amount: {
     type: Number,

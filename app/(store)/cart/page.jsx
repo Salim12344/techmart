@@ -3,10 +3,12 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Lock, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useToast } from '@/app/components/Toast';
 import { useConfirm } from '@/app/components/ConfirmDialog';
+import { getCart, saveCart } from '@/lib/cart';
 
 const C = {
   bg: '#f5f5f7', card: '#ffffff', border: '#e8e8ed',
@@ -22,6 +24,7 @@ function formatPrice(amount) {
 }
 
 export default function CartPage() {
+  const { status } = useSession();
   const [cart, setCart] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [stockMap, setStockMap] = useState({});
@@ -29,25 +32,26 @@ export default function CartPage() {
   const confirmAction = useConfirm();
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('techmart-cart');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) setCart(parsed);
+    if (status === 'loading') return;
+    let cancelled = false;
+    getCart(status).then((items) => {
+      if (!cancelled) {
+        setCart(items);
+        setLoaded(true);
       }
-    } catch {
-      // ignore
-    }
-    setLoaded(true);
-  }, []);
+    });
+    return () => { cancelled = true; };
+  }, [status]);
 
-  // Fetch current stock levels and clamp any cart items that exceed them.
+  // Fetch current stock levels and clamp quantities that exceed them. Items
+  // that have sold out entirely are kept (not removed) and flagged as out of
+  // stock in the UI instead - see rendering below.
   useEffect(() => {
     if (!loaded || cart.length === 0) return;
     let cancelled = false;
     async function fetchStock() {
       try {
-        const res = await fetch('/api/products');
+        const res = await fetch('/api/products', { cache: 'no-store' });
         if (!res.ok) return;
         const data = await res.json();
         const products = data.products || [];
@@ -60,24 +64,22 @@ export default function CartPage() {
         if (cancelled) return;
         setStockMap(map);
 
-        // Clamp quantities that now exceed current stock.
+        // Clamp quantities that exceed current stock, but keep out-of-stock
+        // items in the cart (quantity floored at 1) so the user can see them.
         let changed = false;
         const clamped = cart.map((item) => {
           const stock = map[item.sku];
-          if (stock !== undefined && item.quantity > stock) {
+          if (stock !== undefined && stock > 0 && item.quantity > stock) {
             changed = true;
-            if (stock > 0) {
-              showToast(`Reduced quantity for ${item.name} - only ${stock} in stock`, 'warning');
-            }
-            return { ...item, quantity: Math.max(stock, 0) };
+            showToast(`Reduced quantity for ${item.name} - only ${stock} in stock`, 'warning');
+            return { ...item, quantity: stock };
           }
           return item;
-        }).filter((item) => item.quantity > 0);
+        });
 
         if (changed) {
           setCart(clamped);
-          localStorage.setItem('techmart-cart', JSON.stringify(clamped));
-          window.dispatchEvent(new Event('cart-updated'));
+          saveCart(clamped, status);
         }
       } catch {
         // ignore - stock check is best-effort
@@ -90,8 +92,7 @@ export default function CartPage() {
 
   function persist(updated) {
     setCart(updated);
-    localStorage.setItem('techmart-cart', JSON.stringify(updated));
-    window.dispatchEvent(new Event('cart-updated'));
+    saveCart(updated, status);
   }
 
   function updateQuantity(index, delta) {
@@ -181,10 +182,13 @@ export default function CartPage() {
     );
   }
 
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const isOutOfStock = (item) => stockMap[item.sku] !== undefined && stockMap[item.sku] <= 0;
+  const availableItems = cart.filter((item) => !isOutOfStock(item));
+  const hasOutOfStockItems = availableItems.length !== cart.length;
+  const subtotal = availableItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const deliveryFee = subtotal > FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
   const total = subtotal + deliveryFee;
-  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const totalItems = availableItems.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <div style={{ background: C.bg, minHeight: '100vh' }}>
@@ -226,6 +230,7 @@ export default function CartPage() {
                   background: C.card, borderRadius: 16,
                   boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
                   marginBottom: '1rem',
+                  opacity: isOutOfStock(item) ? 0.6 : 1,
                 }}
               >
                 {/* Product Image */}
@@ -287,6 +292,15 @@ export default function CartPage() {
                             {item.storage}
                           </span>
                         )}
+                        {isOutOfStock(item) && (
+                          <span style={{
+                            fontSize: '0.75rem', fontWeight: 600, color: C.red,
+                            background: 'rgba(255,69,58,0.08)', padding: '0.1875rem 0.625rem',
+                            borderRadius: 980,
+                          }}>
+                            Out of Stock
+                          </span>
+                        )}
                       </div>
                     </div>
                     <p style={{
@@ -318,15 +332,15 @@ export default function CartPage() {
                     }}>
                       <button
                         onClick={() => updateQuantity(index, -1)}
-                        disabled={item.quantity <= 1}
+                        disabled={item.quantity <= 1 || isOutOfStock(item)}
                         style={{
                           width: 36, height: 36, display: 'flex',
                           alignItems: 'center', justifyContent: 'center',
                           background: 'transparent', border: 'none',
-                          cursor: item.quantity <= 1 ? 'not-allowed' : 'pointer',
-                          color: item.quantity <= 1 ? C.border : C.text,
+                          cursor: (item.quantity <= 1 || isOutOfStock(item)) ? 'not-allowed' : 'pointer',
+                          color: (item.quantity <= 1 || isOutOfStock(item)) ? C.border : C.text,
                           transition: 'all 0.2s ease',
-                          opacity: item.quantity <= 1 ? 0.4 : 1,
+                          opacity: (item.quantity <= 1 || isOutOfStock(item)) ? 0.4 : 1,
                         }}
                         aria-label="Decrease quantity"
                       >
@@ -341,11 +355,14 @@ export default function CartPage() {
                       </span>
                       <button
                         onClick={() => updateQuantity(index, 1)}
+                        disabled={isOutOfStock(item)}
                         style={{
                           width: 36, height: 36, display: 'flex',
                           alignItems: 'center', justifyContent: 'center',
                           background: 'transparent', border: 'none',
-                          cursor: 'pointer', color: C.text,
+                          cursor: isOutOfStock(item) ? 'not-allowed' : 'pointer',
+                          color: isOutOfStock(item) ? C.border : C.text,
+                          opacity: isOutOfStock(item) ? 0.4 : 1,
                           transition: 'all 0.2s ease',
                         }}
                         aria-label="Increase quantity"
@@ -471,18 +488,41 @@ export default function CartPage() {
                 </span>
               </div>
 
+              {/* Out-of-stock hint */}
+              {hasOutOfStockItems && (
+                <p style={{
+                  fontSize: '0.8125rem', color: C.red, margin: '0 0 0.875rem',
+                  textAlign: 'center', lineHeight: 1.5,
+                }}>
+                  Remove the out-of-stock item{cart.length - availableItems.length > 1 ? 's' : ''} above to check out.
+                </p>
+              )}
+
               {/* Checkout Button */}
-              <Link href="/checkout" style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: '100%', padding: '1rem', borderRadius: 980,
-                background: C.blue, color: '#ffffff', textDecoration: 'none',
-                fontSize: '1.0625rem', fontWeight: 500, border: 'none',
-                transition: 'all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1)',
-                letterSpacing: '-0.01em', boxSizing: 'border-box',
-                boxShadow: '0 2px 8px rgba(0,113,227,0.25)',
-              }}>
-                Checkout
-              </Link>
+              {availableItems.length === 0 ? (
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: '100%', padding: '1rem', borderRadius: 980,
+                  background: C.border, color: C.muted,
+                  fontSize: '1.0625rem', fontWeight: 500,
+                  letterSpacing: '-0.01em', boxSizing: 'border-box',
+                  cursor: 'not-allowed',
+                }}>
+                  Checkout
+                </div>
+              ) : (
+                <Link href="/checkout" style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: '100%', padding: '1rem', borderRadius: 980,
+                  background: C.blue, color: '#ffffff', textDecoration: 'none',
+                  fontSize: '1.0625rem', fontWeight: 500, border: 'none',
+                  transition: 'all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1)',
+                  letterSpacing: '-0.01em', boxSizing: 'border-box',
+                  boxShadow: '0 2px 8px rgba(0,113,227,0.25)',
+                }}>
+                  Checkout
+                </Link>
+              )}
 
               {/* Continue Shopping */}
               <Link href="/products" style={{

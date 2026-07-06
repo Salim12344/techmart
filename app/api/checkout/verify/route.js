@@ -1,7 +1,7 @@
 import { connectDB } from '@/lib/db';
 import Order from '@/models/order';
-import Product from '@/models/product';
 import { sendOrderConfirmationEmail } from '@/lib/email';
+import { fulfillOrRefund } from '@/lib/orderFulfillment';
 
 export async function GET(req) {
   try {
@@ -30,12 +30,10 @@ export async function GET(req) {
       );
 
       if (order) {
-        // Deduct stock for each item
-        for (const item of order.items) {
-          await Product.updateOne(
-            { _id: item.productId, 'variants.color': item.color, 'variants.storage': item.storage },
-            { $inc: { 'variants.$.stock': -item.quantity } }
-          );
+        const { fulfilled } = await fulfillOrRefund(order, paystackData.data.customer?.email);
+
+        if (!fulfilled) {
+          return Response.json({ verified: false, reason: 'oversold' });
         }
 
         if (paystackData.data.customer?.email) {

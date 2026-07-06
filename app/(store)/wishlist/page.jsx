@@ -9,6 +9,7 @@ import { Heart, Trash2, ShoppingCart, Eye, X, Package, ShoppingBag, Plus, Minus 
 import { useToast } from '@/app/components/Toast';
 import { useConfirm } from '@/app/components/ConfirmDialog';
 import { getGuestWishlist, toggleGuestWishlist } from '@/lib/guestWishlist';
+import { getCart, saveCart } from '@/lib/cart';
 import { formatPrice } from '@/lib/formatPrice';
 
 const C = {
@@ -21,9 +22,26 @@ const C = {
 };
 
 const LOW_STOCK_THRESHOLD = 5;
-const CART_KEY = 'techmart-cart';
 
-function addVariantToCart({ product, variant, color, storage, quantity, toast }) {
+async function addVariantToCart({ product, variant, color, storage, quantity, toast, authStatus }) {
+  // Re-check live stock at the moment of adding - someone else may have bought
+  // the last unit since this page's product list was fetched.
+  let stock = variant.stock;
+  try {
+    const res = await fetch(`/api/products/${product._id}`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      const liveVariant = data.product?.variants?.find((v) => v.sku === variant.sku);
+      stock = liveVariant ? liveVariant.stock : 0;
+    }
+  } catch {
+    // re-check failed - fall back to the page's own data rather than blocking the user
+  }
+  if (stock <= 0) {
+    toast('This item just sold out', 'error');
+    return;
+  }
+
   const cartItem = {
     productId: product._id,
     name: product.name,
@@ -35,32 +53,26 @@ function addVariantToCart({ product, variant, color, storage, quantity, toast })
     image: product.colors?.find((c) => c.name === color)?.image || product.image || '',
   };
 
-  let cart = [];
-  try {
-    cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
-  } catch {
-    cart = [];
-  }
+  const cart = await getCart(authStatus);
 
   const existingIdx = cart.findIndex((c) => c.sku === cartItem.sku);
   if (existingIdx > -1) {
     const newQty = cart[existingIdx].quantity + quantity;
-    if (newQty > variant.stock) {
-      if (cart[existingIdx].quantity >= variant.stock) {
-        toast(`Only ${variant.stock} in stock`, 'error');
+    if (newQty > stock) {
+      if (cart[existingIdx].quantity >= stock) {
+        toast(`Only ${stock} in stock`, 'error');
         return;
       }
-      cart[existingIdx].quantity = variant.stock;
+      cart[existingIdx].quantity = stock;
     } else {
       cart[existingIdx].quantity = newQty;
     }
   } else {
-    cartItem.quantity = Math.min(quantity, variant.stock);
+    cartItem.quantity = Math.min(quantity, stock);
     cart.push(cartItem);
   }
 
-  localStorage.setItem(CART_KEY, JSON.stringify(cart));
-  window.dispatchEvent(new Event('cart-updated'));
+  await saveCart(cart, authStatus);
   toast(`${quantity} × ${product.name} added to cart`, 'success');
 }
 
@@ -172,7 +184,7 @@ export default function WishlistPage() {
       showToast('No variants available for this product', 'error');
       return;
     }
-    if (variant.stock === 0) {
+    if (variant.stock <= 0) {
       showToast('This item is out of stock', 'error');
       return;
     }
@@ -183,6 +195,7 @@ export default function WishlistPage() {
       storage: variant.storage,
       quantity: 1,
       toast: showToast,
+      authStatus: status,
     });
   };
 
@@ -203,7 +216,7 @@ export default function WishlistPage() {
 
   const quickAddStockStatus = (() => {
     if (!quickAddVariant) return { label: 'Unavailable', color: C.muted, bg: '#f0f0f0', dot: C.muted };
-    if (quickAddVariant.stock === 0)
+    if (quickAddVariant.stock <= 0)
       return { label: 'Out of Stock', color: C.red, bg: C.redBg, dot: C.red };
     if (quickAddVariant.stock <= LOW_STOCK_THRESHOLD)
       return { label: `Low Stock (${quickAddVariant.stock} left)`, color: C.orange, bg: C.orangeBg, dot: C.orange };
@@ -211,7 +224,7 @@ export default function WishlistPage() {
   })();
 
   function handleQuickAddSubmit() {
-    if (!quickAddProduct || !quickAddVariant || quickAddVariant.stock === 0) return;
+    if (!quickAddProduct || !quickAddVariant || quickAddVariant.stock <= 0) return;
     addVariantToCart({
       product: quickAddProduct,
       variant: quickAddVariant,
@@ -219,6 +232,7 @@ export default function WishlistPage() {
       storage: quickAddStorage,
       quantity: quickAddQuantity,
       toast: showToast,
+      authStatus: status,
     });
     closeQuickAdd();
   }
@@ -667,7 +681,7 @@ export default function WishlistPage() {
                 style={{
                   fontSize: '1.5rem',
                   fontWeight: 700,
-                  color: quickAddVariant?.stock === 0 ? C.muted : C.text,
+                  color: quickAddVariant?.stock <= 0 ? C.muted : C.text,
                   letterSpacing: '-0.03em',
                 }}
               >
@@ -747,7 +761,7 @@ export default function WishlistPage() {
             {/* Add to Cart */}
             <button
               onClick={handleQuickAddSubmit}
-              disabled={!quickAddVariant || quickAddVariant.stock === 0}
+              disabled={!quickAddVariant || quickAddVariant.stock <= 0}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -757,17 +771,17 @@ export default function WishlistPage() {
                 padding: '0.875rem',
                 borderRadius: '980px',
                 border: 'none',
-                background: !quickAddVariant || quickAddVariant.stock === 0 ? '#e8e8ed' : C.blue,
-                color: !quickAddVariant || quickAddVariant.stock === 0 ? C.muted : '#ffffff',
+                background: !quickAddVariant || quickAddVariant.stock <= 0 ? '#e8e8ed' : C.blue,
+                color: !quickAddVariant || quickAddVariant.stock <= 0 ? C.muted : '#ffffff',
                 fontSize: '0.9375rem',
                 fontWeight: 600,
-                cursor: !quickAddVariant || quickAddVariant.stock === 0 ? 'not-allowed' : 'pointer',
+                cursor: !quickAddVariant || quickAddVariant.stock <= 0 ? 'not-allowed' : 'pointer',
                 fontFamily: 'inherit',
                 transition: 'all 0.25s ease',
               }}
             >
               <ShoppingBag size={16} />
-              {!quickAddVariant || quickAddVariant.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+              {!quickAddVariant || quickAddVariant.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}
             </button>
           </div>
         </div>

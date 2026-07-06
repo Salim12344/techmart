@@ -6,7 +6,7 @@ export async function GET(req) {
   try {
     await connectDB();
     const products = await Product.find({});
-    return Response.json({ products });
+    return Response.json({ products }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

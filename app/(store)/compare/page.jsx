@@ -5,8 +5,10 @@ import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { X, ShoppingBag, ArrowLeft, GitCompareArrows } from 'lucide-react';
 import { useToast } from '@/app/components/Toast';
+import { getCart, saveCart } from '@/lib/cart';
 import { formatPrice } from '@/lib/formatPrice';
 
 const C = {
@@ -22,6 +24,7 @@ const DIFF_BG = 'rgba(255,159,10,0.06)';
 
 export default function ComparePage() {
   const router = useRouter();
+  const { status: authStatus } = useSession();
   const { showToast } = useToast();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -90,21 +93,38 @@ export default function ComparePage() {
     showToast('Comparison cleared', 'success');
   };
 
-  const addToCart = (product) => {
+  const addToCart = async (product) => {
     const firstVariant = product.variants?.find((v) => v.stock > 0);
     if (!firstVariant) {
       showToast('No available variants in stock');
       return;
     }
 
+    // Re-check live stock at the moment of adding - someone else may have bought
+    // the last unit since this page's product list was fetched.
+    let stock = firstVariant.stock;
     try {
-      const stored = localStorage.getItem('techmart-cart');
-      const cart = stored ? JSON.parse(stored) : [];
+      const res = await fetch(`/api/products/${product._id}`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        const liveVariant = data.product?.variants?.find((v) => v.sku === firstVariant.sku);
+        stock = liveVariant ? liveVariant.stock : 0;
+      }
+    } catch {
+      // re-check failed - fall back to the page's own data rather than blocking the user
+    }
+    if (stock <= 0) {
+      showToast('This item just sold out', 'error');
+      return;
+    }
+
+    try {
+      const cart = await getCart(authStatus);
       const existingIndex = cart.findIndex((item) => item.sku === firstVariant.sku);
 
       if (existingIndex >= 0) {
-        if (cart[existingIndex].quantity >= firstVariant.stock) {
-          showToast(`Only ${firstVariant.stock} in stock`, 'error');
+        if (cart[existingIndex].quantity >= stock) {
+          showToast(`Only ${stock} in stock`, 'error');
           return;
         }
         cart[existingIndex].quantity += 1;
@@ -121,8 +141,7 @@ export default function ComparePage() {
         });
       }
 
-      localStorage.setItem('techmart-cart', JSON.stringify(cart));
-      window.dispatchEvent(new Event('cart-updated'));
+      await saveCart(cart, authStatus);
       showToast(`${product.name} added to cart`, 'success');
     } catch {
       showToast('Unable to add to cart right now');
@@ -275,7 +294,7 @@ export default function ComparePage() {
       label: 'Stock Status',
       values: products.map((p) => {
         const total = getTotalStock(p);
-        if (total === 0) return 'Out of Stock';
+        if (total <= 0) return 'Out of Stock';
         if (total <= 5) return `Low Stock (${total})`;
         return `In Stock (${total})`;
       }),

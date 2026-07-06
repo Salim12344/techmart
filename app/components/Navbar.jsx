@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { getGuestWishlist, clearGuestWishlist } from '@/lib/guestWishlist';
+import { getCart, getGuestCart, clearGuestCart } from '@/lib/cart';
 import { useConfirm } from '@/app/components/ConfirmDialog';
 import {
   ShoppingBag,
@@ -48,22 +49,14 @@ export default function Navbar() {
   const [supportUnread, setSupportUnread] = useState(0);
   const dropdownRef = useRef(null);
 
-  // Read cart count from localStorage
+  // Read cart count (DB-backed when signed in, localStorage for guests)
   useEffect(() => {
-    function updateCartCount() {
-      try {
-        const raw = localStorage.getItem('techmart-cart');
-        if (raw) {
-          const cart = JSON.parse(raw);
-          const total = Array.isArray(cart)
-            ? cart.reduce((sum, item) => sum + (item.quantity || 1), 0)
-            : 0;
-          setCartCount(total);
-        } else {
-          setCartCount(0);
-        }
-      } catch {
-        setCartCount(0);
+    if (status === 'loading') return;
+    let cancelled = false;
+    async function updateCartCount() {
+      const cart = await getCart(status);
+      if (!cancelled) {
+        setCartCount(cart.reduce((sum, item) => sum + (item.quantity || 1), 0));
       }
     }
 
@@ -72,10 +65,11 @@ export default function Navbar() {
     window.addEventListener('storage', updateCartCount);
     window.addEventListener('cart-updated', updateCartCount);
     return () => {
+      cancelled = true;
       window.removeEventListener('storage', updateCartCount);
       window.removeEventListener('cart-updated', updateCartCount);
     };
-  }, []);
+  }, [status]);
 
   // Track scroll
   useEffect(() => {
@@ -117,6 +111,23 @@ export default function Navbar() {
         )).then(() => {
           clearGuestWishlist();
         });
+      }
+    }
+  }, [status]);
+
+  // Merge guest cart into account once user is authenticated
+  useEffect(() => {
+    if (status === 'authenticated') {
+      const guestItems = getGuestCart();
+      if (guestItems.length > 0) {
+        fetch('/api/cart/merge', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: guestItems }),
+        }).then(() => {
+          clearGuestCart();
+          window.dispatchEvent(new Event('cart-updated'));
+        }).catch(() => {});
       }
     }
   }, [status]);

@@ -188,7 +188,7 @@ export default function AdminProductsPage() {
     const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
 
     // Stock status filter
-    const hasOut = p.variants?.some(v => v.stock === 0);
+    const hasOut = p.variants?.some(v => v.stock <= 0);
     const hasLow = p.variants?.some(v => v.stock > 0 && v.stock <= LOW_STOCK_THRESHOLD);
     let matchStatus = true;
     if (stockStatus === 'out') matchStatus = hasOut;
@@ -764,7 +764,7 @@ export default function AdminProductsPage() {
                     const variantCount = product.variants?.length || 0;
                     const isExpanded = expandedProduct === product._id;
                     const LOW_STOCK = 5;
-                    const hasOutVariant = product.variants?.some(v => v.stock === 0);
+                    const hasOutVariant = product.variants?.some(v => v.stock <= 0);
                     const hasLowVariant = product.variants?.some(v => v.stock > 0 && v.stock <= LOW_STOCK);
                     const stockColor = totalStock > 10 ? C.green : totalStock > 0 ? C.orange : C.red;
                     const stockBg = totalStock > 10 ? C.greenBg : totalStock > 0 ? C.orangeBg : C.redBg;
@@ -825,7 +825,7 @@ export default function AdminProductsPage() {
                                     {product.variants?.map((v, i) => {
                                       const color = product.colors?.find(c => c.name === v.color);
                                       const isLow = v.stock > 0 && v.stock <= LOW_STOCK;
-                                      const isOut = v.stock === 0;
+                                      const isOut = v.stock <= 0;
                                       return (
                                         <tr key={i} style={{ background: i % 2 === 0 ? C.card : C.bg }}>
                                           <td style={{ padding: '0.625rem 0.875rem' }}>
