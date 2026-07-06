@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ChevronDown, MessageSquare } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ChevronDown, MessageSquare, ArrowLeft } from 'lucide-react';
 
 const C = {
   bg: '#f5f5f7', card: '#ffffff', border: '#e8e8ed',
@@ -35,12 +36,25 @@ const faqs = [
 ];
 
 export default function FAQPage() {
+  const router = useRouter();
   const [openIndex, setOpenIndex] = useState(null);
 
   const toggle = (key) => setOpenIndex(openIndex === key ? null : key);
 
   return (
     <div className="faq-page" style={{ maxWidth: 800, margin: '0 auto', padding: '2.5rem 1.5rem 5rem' }}>
+      <button
+        onClick={() => router.back()}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
+          background: 'none', border: 'none', color: C.blue,
+          fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer',
+          fontFamily: 'inherit', padding: 0, marginBottom: '1.5rem',
+        }}
+      >
+        <ArrowLeft size={16} /> Back
+      </button>
+
       <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
         <h1 style={{ fontSize: '2.5rem', fontWeight: 700, color: C.text, letterSpacing: '-0.04em', margin: '0 0 0.5rem' }}>
           Frequently Asked Questions

@@ -22,7 +22,7 @@ export default function AdminUsersPage() {
       try {
         const res = await fetch('/api/admin/users');
         const data = await res.json();
-        if (!res.ok) { setError(data.error || 'Failed to load users'); return; }
+        if (!res.ok) { setError(data.error || 'Unable to load users right now'); return; }
         setUsers(data.users || []);
       } catch (err) {
         setError(err.message);
@@ -249,7 +249,6 @@ export default function AdminUsersPage() {
 
               <DetailSection label="Account">
                 <DetailRow label="Email verified" value={selectedUser.emailVerified ? '✓ Yes' : '✗ No'} />
-                <DetailRow label="2FA enabled" value={selectedUser.twoFAEnabled ? '✓ Yes' : '✗ No'} />
                 <DetailRow label="Joined" value={new Date(selectedUser.createdAt).toLocaleDateString()} />
                 <DetailRow
                   label="Last active"

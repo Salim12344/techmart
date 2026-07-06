@@ -79,7 +79,7 @@ function Verify2faContent() {
         body: JSON.stringify({ otpTokenId }),
       });
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Failed to resend code'); return; }
+      if (!res.ok) { showToast(data.error || 'Unable to resend code right now'); return; }
 
       setOtp(['', '', '', '', '', '']);
       showToast('New code sent!', 'success');
@@ -88,7 +88,7 @@ function Verify2faContent() {
         setResendCooldown(prev => { if (prev <= 1) { clearInterval(interval); return 0; } return prev - 1; });
       }, 1000);
     } catch (err) {
-      showToast(err.message || 'Something went wrong');
+      showToast(err.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -138,7 +138,7 @@ function Verify2faContent() {
         router.push('/auth/login');
       }
     } catch (err) {
-      showToast(err.message || 'Something went wrong');
+      showToast(err.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }

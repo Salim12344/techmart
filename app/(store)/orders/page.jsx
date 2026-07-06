@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/app/components/Toast';
-import { Package, ChevronRight, Clock, Truck, Check } from 'lucide-react';
+import { Package, ChevronRight, Clock, Truck, Check, XCircle } from 'lucide-react';
 
 const C = {
   bg: '#f5f5f7', card: '#ffffff', border: '#e8e8ed',
@@ -21,6 +21,8 @@ const STATUS_CONFIG = {
   confirmed: { bg: C.blueBg, color: C.blue, icon: Check, label: 'Confirmed' },
   shipped:   { bg: C.blueBg, color: C.blue, icon: Truck, label: 'Shipped' },
   delivered: { bg: C.greenBg, color: C.green, icon: Check, label: 'Delivered' },
+  cancelled: { bg: C.redBg, color: C.red, icon: XCircle, label: 'Cancelled' },
+  refunded:  { bg: 'rgba(191,90,242,0.1)', color: '#bf5af2', icon: XCircle, label: 'Refunded' },
 };
 
 function formatPrice(price) {
@@ -41,6 +43,8 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hoveredCard, setHoveredCard] = useState(null);
+  const [page, setPage] = useState(1);
+  const ORDERS_PER_PAGE = 5;
 
   useEffect(() => {
     if (authStatus === 'unauthenticated') {
@@ -56,12 +60,12 @@ export default function OrdersPage() {
         const res = await fetch('/api/orders');
         const data = await res.json();
         if (!res.ok) {
-          showToast(data.error || 'Failed to load orders');
+          showToast(data.error || 'Unable to load orders right now');
           return;
         }
         setOrders(data.orders || []);
       } catch (err) {
-        showToast('Failed to load orders');
+        showToast('Unable to load orders right now');
       } finally {
         setLoading(false);
       }
@@ -104,6 +108,10 @@ export default function OrdersPage() {
     }
     return first;
   }
+
+  const totalPages = Math.max(1, Math.ceil(orders.length / ORDERS_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedOrders = orders.slice((currentPage - 1) * ORDERS_PER_PAGE, currentPage * ORDERS_PER_PAGE);
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg }}>
@@ -167,7 +175,7 @@ export default function OrdersPage() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {orders.map((order) => {
+            {paginatedOrders.map((order) => {
               const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
               const StatusIcon = statusConfig.icon;
               const isHovered = hoveredCard === order._id;
@@ -237,6 +245,16 @@ export default function OrdersPage() {
                           Delivered {formatDate(order.deliveredAt)}
                         </span>
                       )}
+                      {order.cancelledAt && (
+                        <span style={{ fontSize: '0.8125rem', color: C.red, fontWeight: 500 }}>
+                          Cancelled {formatDate(order.cancelledAt)}
+                        </span>
+                      )}
+                      {!order.deliveredAt && !['cancelled', 'refunded'].includes(order.status) && (
+                        <span style={{ fontSize: '0.8125rem', color: C.blue, fontWeight: 500 }}>
+                          Est. delivery {formatDate(new Date(new Date(order.confirmedAt || order.createdAt).getTime() + 3 * 24 * 60 * 60 * 1000))} - {formatDate(new Date(new Date(order.confirmedAt || order.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000))}
+                        </span>
+                      )}
                       <span style={{
                         fontSize: '0.9375rem', fontWeight: 600, color: C.text,
                       }}>
@@ -259,6 +277,45 @@ export default function OrdersPage() {
                 </Link>
               );
             })}
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: '0.75rem', marginTop: '2rem',
+          }}>
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              style={{
+                padding: '0.5rem 1rem', borderRadius: '980px',
+                border: `1px solid ${C.border}`, background: C.card,
+                color: currentPage === 1 ? C.muted : C.text,
+                fontSize: '0.875rem', fontWeight: 500,
+                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              Previous
+            </button>
+            <span style={{ fontSize: '0.875rem', color: C.muted }}>
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              style={{
+                padding: '0.5rem 1rem', borderRadius: '980px',
+                border: `1px solid ${C.border}`, background: C.card,
+                color: currentPage === totalPages ? C.muted : C.text,
+                fontSize: '0.875rem', fontWeight: 500,
+                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              Next
+            </button>
           </div>
         )}
       </div>

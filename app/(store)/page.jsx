@@ -45,9 +45,16 @@ function StarRating({ rating, size = 14 }) {
 }
 
 function useScrollReveal() {
-  const ref = useRef(null);
+  // Some sections (Categories, Newsletter) only mount once async data/session state
+  // resolves, so a one-time useRef+effect can miss them entirely (ref.current is
+  // still null when the effect runs). A callback ref re-fires whenever the node
+  // actually mounts, so the observer always gets attached.
+  const [el, setEl] = useState(null);
+  const ref = useCallback((node) => {
+    if (node) setEl(node);
+  }, []);
+
   useEffect(() => {
-    const el = ref.current;
     if (!el) return;
     const observer = new IntersectionObserver(
       (entries) => {
@@ -70,7 +77,7 @@ function useScrollReveal() {
       }
     });
     return () => observer.disconnect();
-  }, []);
+  }, [el]);
   return ref;
 }
 
@@ -739,7 +746,7 @@ export default function HomePage() {
                 setSubscribeMsg(data.message || data.error || 'Subscribed!');
                 setSubscribeType(data.type || '');
                 if (res.ok && data.type === 'new_subscriber') setSubscribeEmail('');
-              } catch { setSubscribeMsg('Something went wrong'); }
+              } catch { setSubscribeMsg('Something went wrong. Please try again.'); }
               finally { setSubscribing(false); }
             }} style={{
               display: 'flex', gap: '0.75rem',

@@ -9,7 +9,7 @@ export default function StoreLayout({ children }) {
   return (
     <>
       <Navbar />
-      <main className="store-main" style={{ minHeight: '100vh', background: '#f5f5f7' }}>
+      <main className="store-main" style={{ minHeight: '100vh', background: '#f5f5f7', overflowX: 'hidden' }}>
         <ErrorBoundary>
           {children}
         </ErrorBoundary>

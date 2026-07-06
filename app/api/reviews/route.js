@@ -2,7 +2,6 @@
 import { connectDB } from '@/lib/db';
 import Review from '@/models/Review';
 import Order from '@/models/order';
-import Product from '@/models/product';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
@@ -45,11 +44,8 @@ export async function POST(req) {
 
     await review.save();
 
-    // Recalculate average rating and review count for the product
-    const allReviews = await Review.find({ productId });
-    const reviewCount = allReviews.length;
-    const averageRating = allReviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount;
-    await Product.findByIdAndUpdate(productId, { averageRating: Math.round(averageRating * 10) / 10, reviewCount });
+    // Product's rating/count only reflect admin-approved reviews - nothing to
+    // recalculate yet, since this review isn't visible until approved.
 
     return Response.json({ review }, { status: 201 });
   } catch (error) {
@@ -61,10 +57,16 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const productId = searchParams.get('productId');
+    const session = await getServerSession(authOptions);
 
     await connectDB();
-    
-    const query = productId ? { productId } : {};
+
+    const baseQuery = productId ? { productId } : {};
+    // Show approved reviews to everyone, plus the current user's own pending review(s)
+    const query = session?.user?.id
+      ? { ...baseQuery, $or: [{ isApproved: true }, { userId: session.user.id }] }
+      : { ...baseQuery, isApproved: true };
+
     const reviews = await Review.find(query)
       .populate('userId', 'name')
       .sort({ createdAt: -1 });

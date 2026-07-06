@@ -40,9 +40,9 @@ export default function DisputesPage() {
         const res = await fetch('/api/disputes');
         const data = await res.json();
         if (res.ok) setDisputes(data.disputes || []);
-        else showToast(data.error || 'Failed to load disputes');
+        else showToast(data.error || 'Unable to load disputes right now');
       } catch {
-        showToast('Failed to load disputes');
+        showToast('Unable to load disputes right now');
       } finally {
         setLoading(false);
       }

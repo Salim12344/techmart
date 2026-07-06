@@ -68,7 +68,7 @@ function SupportContent() {
     try {
       const res = await fetch('/api/support');
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Failed to load tickets'); return; }
+      if (!res.ok) { showToast(data.error || 'Unable to load tickets right now'); return; }
       setTickets(data.tickets || []);
     } catch (err) {
       showToast(err.message);
@@ -91,7 +91,7 @@ function SupportContent() {
         body: JSON.stringify({ ...form, subject: form.subject.trim(), message: form.message.trim() }),
       });
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Failed to create ticket'); return; }
+      if (!res.ok) { showToast(data.error || 'Unable to create ticket right now'); return; }
       showToast('Ticket created successfully', 'success');
       setForm({ subject: '', category: 'general', message: '' });
       setShowForm(false);

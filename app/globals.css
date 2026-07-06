@@ -46,8 +46,6 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  overflow-x: hidden;
-  max-width: 100%;
   overscroll-behavior-x: none;
 }
 
@@ -59,8 +57,7 @@ body {
   font-size: 17px;
   line-height: 1.47059;
   letter-spacing: -0.022em;
-  overflow-x: hidden;
-  max-width: 100%;
+  overscroll-behavior-x: none;
   overscroll-behavior-x: none;
 }
 

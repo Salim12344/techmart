@@ -74,7 +74,7 @@ export default function RegisterPage() {
         body: JSON.stringify({ email: form.email.trim(), purpose: 'SIGNUP_VERIFY' }),
       });
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Failed to send OTP'); return; }
+      if (!res.ok) { showToast(data.error || 'Unable to send OTP right now'); return; }
 
       setOtpToken(data.otpTokenId);
       setStep(2);
@@ -146,7 +146,7 @@ export default function RegisterPage() {
         body: JSON.stringify({ email: form.email.trim(), purpose: 'SIGNUP_VERIFY' }),
       });
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Failed to resend OTP'); return; }
+      if (!res.ok) { showToast(data.error || 'Unable to resend OTP right now'); return; }
 
       setOtpToken(data.otpTokenId);
       setOtp(['', '', '', '', '', '']);

@@ -84,7 +84,7 @@ export default function AdminSupportPage() {
     try {
       const res = await fetch('/api/admin/support');
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Failed to load tickets'); return; }
+      if (!res.ok) { showToast(data.error || 'Unable to load tickets right now'); return; }
       setTickets(data.tickets || []);
     } catch (err) {
       showToast(err.message);
@@ -114,7 +114,7 @@ export default function AdminSupportPage() {
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Failed to update ticket'); return; }
+      if (!res.ok) { showToast(data.error || 'Unable to update ticket right now'); return; }
 
       setSelectedTicket(data.ticket);
       setTickets(prev => prev.map(t => t._id === data.ticket._id ? data.ticket : t));

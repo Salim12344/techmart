@@ -32,7 +32,7 @@ function addVariantToCart({ product, variant, color, storage, quantity, toast })
     sku: variant.sku || '',
     price: variant.price,
     quantity,
-    image: product.image || '',
+    image: product.colors?.find((c) => c.name === color)?.image || product.image || '',
   };
 
   let cart = [];
@@ -88,7 +88,7 @@ export default function WishlistPage() {
           if (res.ok) {
             setWishlist(data.wishlist || []);
           } else {
-            showToast(data.error || 'Failed to load wishlist');
+            showToast(data.error || 'Unable to load wishlist right now');
           }
         } catch (err) {
           showToast(err.message);
@@ -112,7 +112,7 @@ export default function WishlistPage() {
             const products = (data.products || []).filter(p => guestIds.includes(p._id));
             setWishlist(products);
           } else {
-            showToast(data.error || 'Failed to load wishlist');
+            showToast(data.error || 'Unable to load wishlist right now');
           }
         } catch (err) {
           showToast(err.message);
@@ -146,7 +146,7 @@ export default function WishlistPage() {
         setWishlist(prev => prev.filter(p => p._id !== productId));
         showToast('Removed from wishlist', 'success');
       } else {
-        showToast(data.error || 'Failed to remove item');
+        showToast(data.error || 'Unable to remove item right now');
       }
     } catch (err) {
       showToast(err.message);

@@ -45,7 +45,7 @@ export default function AdminOrdersPage() {
       try {
         const res = await fetch('/api/admin/orders');
         const data = await res.json();
-        if (!res.ok) { showToast(data.error || 'Failed to load orders'); return; }
+        if (!res.ok) { showToast(data.error || 'Unable to load orders right now'); return; }
         setOrders(data.orders || []);
       } catch (err) {
         showToast(err.message);
@@ -66,7 +66,7 @@ export default function AdminOrdersPage() {
         body: JSON.stringify({ status: newStatus }),
       });
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Failed to update order'); return; }
+      if (!res.ok) { showToast(data.error || 'Unable to update order right now'); return; }
 
       setOrders(orders.map(o => o._id === orderId ? { ...o, status: newStatus } : o));
       if (selectedOrder?._id === orderId) {

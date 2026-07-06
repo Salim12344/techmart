@@ -10,7 +10,6 @@ import {
   ShoppingBag,
   Heart,
   User,
-  Search,
   Menu,
   X,
   Package,
@@ -397,7 +396,7 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Desktop-only icons: Search + User Dropdown */}
+          {/* Desktop-only icon: User Dropdown */}
           <div
             style={{
               display: 'flex',
@@ -406,28 +405,6 @@ export default function Navbar() {
             }}
             className="navbar-desktop-icons"
           >
-            {/* Search */}
-            <Link
-              href="/products"
-              onMouseEnter={() => setHoveredIcon('search')}
-              onMouseLeave={() => setHoveredIcon(null)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '36px',
-                height: '36px',
-                borderRadius: '50%',
-                background: hoveredIcon === 'search' ? 'rgba(0, 0, 0, 0.05)' : 'transparent',
-                color: C.text,
-                textDecoration: 'none',
-                transition: 'all 0.25s ease',
-              }}
-              title="Search Products"
-            >
-              <Search size={17} strokeWidth={1.6} />
-            </Link>
-
             {/* User Dropdown */}
             <div ref={dropdownRef} style={{ position: 'relative' }}>
               <button

@@ -104,7 +104,7 @@ function ResetPasswordContent() {
         body: JSON.stringify({ otpTokenId }),
       });
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Failed to resend code'); return; }
+      if (!res.ok) { showToast(data.error || 'Unable to resend code right now'); return; }
 
       setOtp(['', '', '', '', '', '']);
       showToast('New code sent!', 'success');
@@ -113,7 +113,7 @@ function ResetPasswordContent() {
         setResendCooldown(prev => { if (prev <= 1) { clearInterval(interval); return 0; } return prev - 1; });
       }, 1000);
     } catch (err) {
-      showToast(err.message || 'Something went wrong');
+      showToast(err.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -149,7 +149,7 @@ function ResetPasswordContent() {
       showToast(data.message || 'Password reset successful!', 'success');
       router.push('/auth/login');
     } catch (err) {
-      showToast(err.message || 'Something went wrong');
+      showToast(err.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -19,7 +19,7 @@ export default function AdminDashboard() {
       try {
         const res = await fetch('/api/admin/stats');
         const data = await res.json();
-        if (!res.ok) { setError(data.error || 'Failed to load stats'); return; }
+        if (!res.ok) { setError(data.error || 'Unable to load stats right now'); return; }
         setStats(data);
       } catch (err) {
         setError(err.message);

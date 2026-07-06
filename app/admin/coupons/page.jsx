@@ -43,7 +43,7 @@ export default function AdminCouponsPage() {
       const data = await res.json();
       if (res.ok) setCoupons(data.coupons || []);
     } catch (err) {
-      showToast('Failed to load coupons');
+      showToast('Unable to load coupons right now');
     } finally {
       setLoading(false);
     }
@@ -67,13 +67,13 @@ export default function AdminCouponsPage() {
         body: JSON.stringify(form),
       });
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Failed to create coupon'); return; }
+      if (!res.ok) { showToast(data.error || 'Unable to create coupon right now'); return; }
       setCoupons([data.coupon, ...coupons]);
       setShowForm(false);
       setForm({ code: '', discountPercent: 5, expiresAt: '', maxUses: 100 });
       showToast('Coupon created', 'success');
     } catch {
-      showToast('Failed to create coupon');
+      showToast('Unable to create coupon right now');
     } finally {
       setSaving(false);
     }
@@ -91,7 +91,7 @@ export default function AdminCouponsPage() {
         showToast(`Coupon ${!coupon.isActive ? 'activated' : 'deactivated'}`, 'success');
       }
     } catch {
-      showToast('Failed to update coupon');
+      showToast('Unable to update coupon right now');
     }
   }
 
@@ -104,7 +104,7 @@ export default function AdminCouponsPage() {
         showToast('Coupon deleted', 'success');
       }
     } catch {
-      showToast('Failed to delete coupon');
+      showToast('Unable to delete coupon right now');
     }
   }
 

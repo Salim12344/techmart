@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        showToast(data.error || 'Something went wrong');
+        showToast(data.error || 'Something went wrong. Please try again.');
         return;
       }
 
@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
         router.push(`/auth/reset-password?token=${data.otpTokenId}&email=${encodeURIComponent(email)}`);
       }
     } catch (err) {
-      showToast(err.message || 'Something went wrong');
+      showToast(err.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }

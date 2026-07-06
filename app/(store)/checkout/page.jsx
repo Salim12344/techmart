@@ -61,6 +61,18 @@ export default function CheckoutPage() {
     country: 'Nigeria',
   });
 
+  // If the browser restores this page from bfcache (e.g. user hits Back after
+  // cancelling on Paystack's page), reset the stuck "redirecting..." state.
+  useEffect(() => {
+    function handlePageShow(event) {
+      if (event.persisted) {
+        setSubmitting(false);
+      }
+    }
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
+
   // Auth redirect
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -211,7 +223,7 @@ export default function CheckoutPage() {
         setCouponError(data.error || 'Invalid coupon');
       }
     } catch {
-      setCouponError('Failed to validate coupon');
+      setCouponError('Unable to validate coupon right now');
     } finally {
       setCouponLoading(false);
     }
@@ -269,12 +281,12 @@ export default function CheckoutPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to start payment');
+        throw new Error(data.error || 'Unable to start payment right now');
       }
 
       window.location.href = data.url;
     } catch (err) {
-      showToast(err.message || 'Something went wrong', 'error');
+      showToast(err.message || 'Something went wrong. Please try again.', 'error');
       setSubmitting(false);
     }
   }

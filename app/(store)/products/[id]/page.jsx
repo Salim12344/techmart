@@ -6,11 +6,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useToast } from '@/app/components/Toast';
+import { useConfirm } from '@/app/components/ConfirmDialog';
 import { isInGuestWishlist, toggleGuestWishlist } from '@/lib/guestWishlist';
 import { formatPrice } from '@/lib/formatPrice';
 import {
   Star, Heart, ShoppingBag, Plus, Minus,
-  ChevronRight, Shield, Truck, Package, Send, ArrowLeft,
+  ChevronRight, Shield, Truck, Package, Send, ArrowLeft, ThumbsUp,
 } from 'lucide-react';
 
 const C = {
@@ -206,6 +207,7 @@ export default function ProductDetailPage({ params }) {
   const { id } = use(params);
   const router = useRouter();
   const { showToast } = useToast();
+  const confirmAction = useConfirm();
 
   const [product, setProduct] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -261,7 +263,7 @@ export default function ProductDetailPage({ params }) {
         if (p.colors?.length > 0) setSelectedColor(p.colors[0].name);
         if (p.storageOptions?.length > 0) setSelectedStorage(p.storageOptions[0]);
       } catch {
-        if (!cancelled) showToast('Failed to load product', 'error');
+        if (!cancelled) showToast('Unable to load product right now', 'error');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -334,6 +336,17 @@ export default function ProductDetailPage({ params }) {
     return cartItems.find((item) => item.sku === selectedVariant.sku) || null;
   }, [cartItems, selectedVariant]);
 
+  // How many more of this variant can still be added on top of what's already in the bag
+  const roomLeft = useMemo(() => {
+    if (!selectedVariant) return 0;
+    return Math.max(0, selectedVariant.stock - (cartItemForVariant?.quantity || 0));
+  }, [selectedVariant, cartItemForVariant]);
+
+  // Keep the "quantity to add" selector within whatever room is actually left
+  useEffect(() => {
+    setQuantity((q) => Math.min(Math.max(q, 1), Math.max(roomLeft, 1)));
+  }, [roomLeft]);
+
 
   // Fetch user's delivered orders to check purchase eligibility for review
   useEffect(() => {
@@ -392,7 +405,7 @@ export default function ProductDetailPage({ params }) {
       });
       if (!res.ok) {
         const data = await res.json();
-        showToast(data.error || 'Failed to submit review', 'error');
+        showToast(data.error || 'Unable to submit review right now', 'error');
         return;
       }
       const data = await res.json();
@@ -406,9 +419,53 @@ export default function ProductDetailPage({ params }) {
       setReviewComment('');
       showToast('Review submitted successfully!', 'success');
     } catch {
-      showToast('Failed to submit review', 'error');
+      showToast('Unable to submit review right now', 'error');
     } finally {
       setReviewSubmitting(false);
+    }
+  }
+
+  async function handleDeleteReview(reviewId) {
+    if (!(await confirmAction({ title: 'Delete your review?', confirmLabel: 'Delete' }))) return;
+    try {
+      const res = await fetch(`/api/reviews/${reviewId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json();
+        showToast(data.error || 'Unable to delete review right now', 'error');
+        return;
+      }
+      setReviews((prev) => prev.filter((r) => r._id !== reviewId));
+      showToast('Review deleted', 'success');
+    } catch {
+      showToast('Unable to delete review right now', 'error');
+    }
+  }
+
+  async function handleLikeReview(reviewId) {
+    if (!session?.user) {
+      showToast('Sign in to like a review');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/reviews/${reviewId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'like' }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Unable to like review right now', 'error');
+        return;
+      }
+      setReviews((prev) => prev.map((r) => {
+        if (r._id !== reviewId) return r;
+        const likes = data.liked
+          ? [...(r.likes || []), session.user.id]
+          : (r.likes || []).filter((u) => u !== session.user.id);
+        return { ...r, likes };
+      }));
+    } catch {
+      showToast('Unable to like review right now', 'error');
     }
   }
 
@@ -446,7 +503,7 @@ export default function ProductDetailPage({ params }) {
       sku: selectedVariant.sku,
       price: selectedVariant.price,
       quantity,
-      image: product.image,
+      image: displayImage,
     };
 
     try {
@@ -477,44 +534,7 @@ export default function ProductDetailPage({ params }) {
       window.dispatchEvent(new Event('cart-updated'));
       showToast(`${product.name} added to cart`, 'success');
     } catch {
-      showToast('Failed to add to cart', 'error');
-    }
-  }
-
-  function updateCartItemQuantity(delta) {
-    if (!selectedVariant) return;
-    try {
-      const raw = localStorage.getItem(CART_KEY);
-      const currentCart = raw ? JSON.parse(raw) : [];
-      const idx = currentCart.findIndex((item) => item.sku === selectedVariant.sku);
-      if (idx === -1) return;
-
-      const newQty = currentCart[idx].quantity + delta;
-      if (newQty < 1) return;
-      if (delta > 0 && newQty > selectedVariant.stock) {
-        showToast(`Only ${selectedVariant.stock} in stock`, 'error');
-        return;
-      }
-
-      currentCart[idx] = { ...currentCart[idx], quantity: newQty };
-      localStorage.setItem(CART_KEY, JSON.stringify(currentCart));
-      window.dispatchEvent(new Event('cart-updated'));
-    } catch {
-      showToast('Failed to update cart', 'error');
-    }
-  }
-
-  function handleRemoveFromCart() {
-    try {
-      const raw = localStorage.getItem(CART_KEY);
-      const cart = raw ? JSON.parse(raw) : [];
-      const updated = cart.filter(item => item.productId !== product._id);
-      localStorage.setItem(CART_KEY, JSON.stringify(updated));
-      window.dispatchEvent(new Event('cart-updated'));
-      setQuantity(1);
-      showToast(`${product.name} removed from cart`, 'success');
-    } catch {
-      showToast('Failed to remove from cart', 'error');
+      showToast('Unable to add to cart right now', 'error');
     }
   }
 
@@ -536,7 +556,7 @@ export default function ProductDetailPage({ params }) {
       if (res.status === 401) { showToast('Sign in to use wishlist'); return; }
       setIsWishlisted(!isWishlisted);
       showToast(isWishlisted ? 'Removed from wishlist' : 'Added to wishlist', 'success');
-    } catch { showToast('Something went wrong'); }
+    } catch { showToast('Something went wrong. Please try again.'); }
     finally { setWishlistLoading(false); }
   }
 
@@ -952,7 +972,9 @@ export default function ProductDetailPage({ params }) {
                   fontWeight: 400,
                 }}
               >
-                ({selectedVariant?.stock || 0} available)
+                {cartItemForVariant
+                  ? `(${cartItemForVariant.quantity} already in bag, ${roomLeft} more available)`
+                  : `(${selectedVariant?.stock || 0} available)`}
               </span>
               <div
                 style={{
@@ -965,12 +987,8 @@ export default function ProductDetailPage({ params }) {
                 }}
               >
                 <button
-                  onClick={() =>
-                    cartItemForVariant
-                      ? updateCartItemQuantity(-1)
-                      : setQuantity((q) => Math.max(1, q - 1))
-                  }
-                  disabled={(cartItemForVariant ? cartItemForVariant.quantity : quantity) <= 1}
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  disabled={quantity <= 1}
                   style={{
                     width: '44px',
                     height: '44px',
@@ -979,8 +997,8 @@ export default function ProductDetailPage({ params }) {
                     justifyContent: 'center',
                     border: 'none',
                     background: 'transparent',
-                    cursor: (cartItemForVariant ? cartItemForVariant.quantity : quantity) <= 1 ? 'not-allowed' : 'pointer',
-                    color: (cartItemForVariant ? cartItemForVariant.quantity : quantity) <= 1 ? '#d2d2d7' : C.text,
+                    cursor: quantity <= 1 ? 'not-allowed' : 'pointer',
+                    color: quantity <= 1 ? '#d2d2d7' : C.text,
                     transition: 'color 0.2s',
                   }}
                 >
@@ -996,20 +1014,11 @@ export default function ProductDetailPage({ params }) {
                     userSelect: 'none',
                   }}
                 >
-                  {cartItemForVariant ? cartItemForVariant.quantity : quantity}
+                  {quantity}
                 </span>
                 <button
-                  onClick={() =>
-                    cartItemForVariant
-                      ? updateCartItemQuantity(1)
-                      : setQuantity((q) =>
-                          Math.min(q + 1, selectedVariant?.stock || 1)
-                        )
-                  }
-                  disabled={
-                    !selectedVariant ||
-                    (cartItemForVariant ? cartItemForVariant.quantity : quantity) >= selectedVariant.stock
-                  }
+                  onClick={() => setQuantity((q) => Math.min(q + 1, Math.max(roomLeft, 1)))}
+                  disabled={!selectedVariant || quantity >= roomLeft}
                   style={{
                     width: '44px',
                     height: '44px',
@@ -1018,14 +1027,8 @@ export default function ProductDetailPage({ params }) {
                     justifyContent: 'center',
                     border: 'none',
                     background: 'transparent',
-                    cursor:
-                      !selectedVariant || (cartItemForVariant ? cartItemForVariant.quantity : quantity) >= selectedVariant.stock
-                        ? 'not-allowed'
-                        : 'pointer',
-                    color:
-                      !selectedVariant || (cartItemForVariant ? cartItemForVariant.quantity : quantity) >= selectedVariant.stock
-                        ? '#d2d2d7'
-                        : C.text,
+                    cursor: !selectedVariant || quantity >= roomLeft ? 'not-allowed' : 'pointer',
+                    color: !selectedVariant || quantity >= roomLeft ? '#d2d2d7' : C.text,
                     transition: 'color 0.2s',
                   }}
                 >
@@ -1047,7 +1050,7 @@ export default function ProductDetailPage({ params }) {
                 onClick={handleAddToCart}
                 onMouseEnter={() => setHoveredAddCart(true)}
                 onMouseLeave={() => setHoveredAddCart(false)}
-                disabled={!selectedVariant || selectedVariant.stock === 0}
+                disabled={!selectedVariant || selectedVariant.stock === 0 || roomLeft === 0}
                 style={{
                   flex: 1,
                   display: 'flex',
@@ -1061,27 +1064,31 @@ export default function ProductDetailPage({ params }) {
                   fontWeight: 600,
                   fontFamily: 'inherit',
                   cursor:
-                    !selectedVariant || selectedVariant.stock === 0
+                    !selectedVariant || selectedVariant.stock === 0 || roomLeft === 0
                       ? 'not-allowed'
                       : 'pointer',
-                  background: !selectedVariant || selectedVariant.stock === 0
+                  background: !selectedVariant || selectedVariant.stock === 0 || roomLeft === 0
                       ? '#e8e8ed'
                       : hoveredAddCart
                       ? '#0077ed'
                       : C.blue,
-                  color: !selectedVariant || selectedVariant.stock === 0
+                  color: !selectedVariant || selectedVariant.stock === 0 || roomLeft === 0
                       ? C.muted
                       : '#ffffff',
                   transition: 'all 0.25s cubic-bezier(0.25, 0.1, 0.25, 1)',
-                  transform: hoveredAddCart && selectedVariant?.stock > 0 ? 'scale(1.02)' : 'scale(1)',
+                  transform: hoveredAddCart && selectedVariant?.stock > 0 && roomLeft > 0 ? 'scale(1.02)' : 'scale(1)',
                   boxShadow:
-                    hoveredAddCart && selectedVariant?.stock > 0
+                    hoveredAddCart && selectedVariant?.stock > 0 && roomLeft > 0
                       ? '0 4px 16px rgba(0,113,227,0.3)'
                       : 'none',
                 }}
               >
                 <ShoppingBag size={18} />
-                {cartItemForVariant ? 'Add Another' : selectedVariant?.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                {selectedVariant?.stock === 0
+                  ? 'Out of Stock'
+                  : roomLeft === 0
+                  ? 'Max in Bag'
+                  : 'Add to Cart'}
               </button>
               <button
                 onClick={handleToggleWishlist}
@@ -1452,6 +1459,15 @@ export default function ProductDetailPage({ params }) {
                     </div>
                     <StarRating rating={review.rating} size={14} />
                   </div>
+                  {!review.isApproved && review.userId?._id === session?.user?.id && (
+                    <span style={{
+                      display: 'inline-block', fontSize: '0.75rem', fontWeight: 600,
+                      color: C.orange, background: C.orangeBg, padding: '0.2rem 0.625rem',
+                      borderRadius: '980px', marginBottom: '0.5rem',
+                    }}>
+                      Pending approval
+                    </span>
+                  )}
                   {review.comment && (
                     <p
                       style={{
@@ -1464,6 +1480,36 @@ export default function ProductDetailPage({ params }) {
                       {review.comment}
                     </p>
                   )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.875rem' }}>
+                    {review.userId?._id === session?.user?.id ? (
+                      <button
+                        onClick={() => handleDeleteReview(review._id)}
+                        style={{
+                          background: 'none', border: 'none', padding: 0,
+                          color: C.red, fontSize: '0.8125rem', fontWeight: 500,
+                          cursor: 'pointer', fontFamily: 'inherit',
+                        }}
+                      >
+                        Delete
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleLikeReview(review._id)}
+                        disabled={!session?.user}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '0.375rem',
+                          background: 'none', border: 'none', padding: 0,
+                          color: (review.likes || []).includes(session?.user?.id) ? C.blue : C.muted,
+                          fontSize: '0.8125rem', fontWeight: 500,
+                          cursor: session?.user ? 'pointer' : 'default',
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        <ThumbsUp size={14} fill={(review.likes || []).includes(session?.user?.id) ? C.blue : 'none'} />
+                        {(review.likes || []).length > 0 ? review.likes.length : ''} Helpful
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

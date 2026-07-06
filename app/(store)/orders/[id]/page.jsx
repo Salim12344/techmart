@@ -68,7 +68,7 @@ export default function OrderDetailPage({ params }) {
         const res = await fetch(`/api/orders/${id}`);
         const data = await res.json();
         if (!res.ok) {
-          showToast(data.error || 'Failed to load order');
+          showToast(data.error || 'Unable to load order right now');
           router.push('/orders');
           return;
         }
@@ -83,7 +83,7 @@ export default function OrderDetailPage({ params }) {
           }
         } catch {}
       } catch (err) {
-        showToast('Failed to load order');
+        showToast('Unable to load order right now');
         router.push('/orders');
       } finally {
         setLoading(false);
@@ -103,12 +103,12 @@ export default function OrderDetailPage({ params }) {
         body: JSON.stringify({ orderId: id, reason: disputeReason, description: disputeDesc }),
       });
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Failed to submit dispute'); return; }
+      if (!res.ok) { showToast(data.error || 'Unable to submit dispute right now'); return; }
       setDispute(data.dispute);
       setShowDisputeForm(false);
       showToast('Dispute submitted successfully', 'success');
     } catch (err) {
-      showToast('Failed to submit dispute');
+      showToast('Unable to submit dispute right now');
     } finally {
       setSubmittingDispute(false);
     }
@@ -120,11 +120,11 @@ export default function OrderDetailPage({ params }) {
     try {
       const res = await fetch(`/api/orders/${id}/cancel`, { method: 'POST' });
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Failed to cancel order'); return; }
+      if (!res.ok) { showToast(data.error || 'Unable to cancel order right now'); return; }
       setOrder(data.order);
       showToast('Order cancelled successfully. Refund is being processed.', 'success');
     } catch (err) {
-      showToast('Failed to cancel order');
+      showToast('Unable to cancel order right now');
     } finally {
       setCancelling(false);
     }
@@ -174,6 +174,12 @@ export default function OrderDetailPage({ params }) {
   const statusConfig = STATUS_CONFIG_FULL[order.status] || STATUS_CONFIG.pending;
   const subtotal = order.items?.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0) || 0;
   const deliveryFee = order.totalAmount - subtotal;
+  // Matches the 3-7 business day window quoted in the order confirmation email
+  const deliveryBasis = new Date(order.confirmedAt || order.createdAt);
+  const deliveryWindow = {
+    earliest: new Date(deliveryBasis.getTime() + 3 * 24 * 60 * 60 * 1000),
+    latest: new Date(deliveryBasis.getTime() + 7 * 24 * 60 * 60 * 1000),
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg }}>
@@ -499,6 +505,20 @@ export default function OrderDetailPage({ params }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
                 <span style={{ color: C.muted }}>Delivered</span>
                 <span style={{ color: C.text, fontWeight: 500 }}>{formatDate(order.deliveredAt)}</span>
+              </div>
+            )}
+            {order.cancelledAt && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                <span style={{ color: C.muted }}>Cancelled</span>
+                <span style={{ color: C.red, fontWeight: 500 }}>{formatDate(order.cancelledAt)}</span>
+              </div>
+            )}
+            {!['delivered', 'cancelled', 'refunded'].includes(order.status) && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', paddingTop: '0.5rem', marginTop: '0.25rem', borderTop: `1px solid ${C.border}` }}>
+                <span style={{ color: C.muted }}>Expected Delivery</span>
+                <span style={{ color: C.blue, fontWeight: 600 }}>
+                  {formatDate(deliveryWindow.earliest)} - {formatDate(deliveryWindow.latest)}
+                </span>
               </div>
             )}
           </div>

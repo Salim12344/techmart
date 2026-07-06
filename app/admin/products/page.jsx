@@ -321,7 +321,7 @@ export default function AdminProductsPage() {
     try {
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, tags: form.tags.filter(Boolean) }) });
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Failed to save product'); return; }
+      if (!res.ok) { showToast(data.error || 'Unable to save product right now'); return; }
       const r = await fetch('/api/products');
       const d = await r.json();
       setProducts(d.products || []);
@@ -385,7 +385,7 @@ export default function AdminProductsPage() {
     try {
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(categoryForm) });
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Failed to save category'); return; }
+      if (!res.ok) { showToast(data.error || 'Unable to save category right now'); return; }
       await fetchCategories(); setShowCategoryForm(false); setEditingCategory(null);
       showToast(editingCategory ? 'Category updated!' : 'Category created!', 'success');
     } catch (err) { showToast(err.message); }

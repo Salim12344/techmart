@@ -91,7 +91,7 @@ export default function AccountPage() {
         body: JSON.stringify({ name: profileForm.name.trim(), phone: profileForm.phone.trim() }),
       });
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Failed to update'); return; }
+      if (!res.ok) { showToast(data.error || 'Unable to update right now'); return; }
       setProfile(data.user);
       setEditingProfile(false);
       await update({ name: data.user.name });
@@ -112,7 +112,7 @@ export default function AccountPage() {
         body: JSON.stringify(passwordForm),
       });
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Failed to change password'); return; }
+      if (!res.ok) { showToast(data.error || 'Unable to change password right now'); return; }
       setChangingPassword(false);
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setHasPassword(true);

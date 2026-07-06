@@ -67,7 +67,7 @@ export default function ComparePage() {
           .filter(Boolean);
         setProducts(matched);
       } catch (err) {
-        showToast('Failed to load products');
+        showToast('Unable to load products right now');
       } finally {
         setLoading(false);
       }
@@ -100,32 +100,32 @@ export default function ComparePage() {
     try {
       const stored = localStorage.getItem('techmart-cart');
       const cart = stored ? JSON.parse(stored) : [];
-      const existingIndex = cart.findIndex(
-        (item) =>
-          item.productId === product._id &&
-          item.color === firstVariant.color &&
-          item.storage === firstVariant.storage
-      );
+      const existingIndex = cart.findIndex((item) => item.sku === firstVariant.sku);
 
       if (existingIndex >= 0) {
+        if (cart[existingIndex].quantity >= firstVariant.stock) {
+          showToast(`Only ${firstVariant.stock} in stock`, 'error');
+          return;
+        }
         cart[existingIndex].quantity += 1;
       } else {
         cart.push({
           productId: product._id,
-          productName: product.name,
-          image: product.image,
+          name: product.name,
+          image: product.colors?.find((c) => c.name === firstVariant.color)?.image || product.image,
           color: firstVariant.color,
           storage: firstVariant.storage,
           sku: firstVariant.sku,
-          unitPrice: firstVariant.price,
+          price: firstVariant.price,
           quantity: 1,
         });
       }
 
       localStorage.setItem('techmart-cart', JSON.stringify(cart));
+      window.dispatchEvent(new Event('cart-updated'));
       showToast(`${product.name} added to cart`, 'success');
     } catch {
-      showToast('Failed to add to cart');
+      showToast('Unable to add to cart right now');
     }
   };
 

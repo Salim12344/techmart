@@ -65,7 +65,7 @@ function LoginContent() {
         window.location.href = redirectTo.startsWith('/admin') ? '/' : redirectTo;
       }
     } catch (err) {
-      showToast(err.message || 'Something went wrong');
+      showToast(err.message || 'Something went wrong. Please try again.');
       setLoading(false);
     }
   };

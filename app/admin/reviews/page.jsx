@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/app/components/Toast';
-import { ArrowLeft, Star, Trash2 } from 'lucide-react';
+import { ArrowLeft, Star, Trash2, Check } from 'lucide-react';
 
 const C = {
   bg: '#f5f5f7', card: '#ffffff', border: '#e8e8ed',
@@ -20,6 +20,8 @@ export default function AdminReviewsPage() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
+  const [approvingId, setApprovingId] = useState(null);
+  const [filter, setFilter] = useState('pending');
 
   useEffect(() => {
     if (session?.user?.role === 'admin') fetchReviews();
@@ -33,9 +35,32 @@ export default function AdminReviewsPage() {
         setReviews(data.reviews || []);
       }
     } catch {
-      showToast('Failed to load reviews', 'error');
+      showToast('Unable to load reviews right now', 'error');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleApprove(reviewId, isApproved) {
+    setApprovingId(reviewId);
+    try {
+      const res = await fetch(`/api/admin/reviews/${reviewId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isApproved }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setReviews((prev) => prev.map((r) => (r._id === reviewId ? { ...r, isApproved: data.review.isApproved } : r)));
+        showToast(isApproved ? 'Review approved' : 'Review unapproved', 'success');
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Unable to update review right now', 'error');
+      }
+    } catch {
+      showToast('Unable to update review right now', 'error');
+    } finally {
+      setApprovingId(null);
     }
   }
 
@@ -55,10 +80,10 @@ export default function AdminReviewsPage() {
         showToast('Review deleted successfully', 'success');
       } else {
         const data = await res.json();
-        showToast(data.error || 'Failed to delete review', 'error');
+        showToast(data.error || 'Unable to delete review right now', 'error');
       }
     } catch {
-      showToast('Failed to delete review', 'error');
+      showToast('Unable to delete review right now', 'error');
     } finally {
       setDeletingId(null);
     }
@@ -89,20 +114,38 @@ export default function AdminReviewsPage() {
         </div>
       </div>
 
+      {/* Filter tabs */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        {['pending', 'approved', 'all'].map((f) => (
+          <button key={f} onClick={() => setFilter(f)}
+            style={{
+              padding: '0.375rem 0.875rem', borderRadius: '980px', fontSize: '0.8125rem',
+              fontWeight: 500, border: `1px solid ${filter === f ? C.blue : C.border}`,
+              background: filter === f ? C.blue : C.card,
+              color: filter === f ? '#fff' : C.text,
+              cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+            }}>
+            {f === 'pending' ? `Pending (${reviews.filter(r => !r.isApproved).length})`
+              : f === 'approved' ? `Approved (${reviews.filter(r => r.isApproved).length})`
+              : `All (${reviews.length})`}
+          </button>
+        ))}
+      </div>
+
       {/* Loading */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '4rem 0', color: C.muted }}>Loading reviews...</div>
-      ) : reviews.length === 0 ? (
+      ) : reviews.filter((r) => filter === 'all' || (filter === 'pending' ? !r.isApproved : r.isApproved)).length === 0 ? (
         <div style={{
           textAlign: 'center', padding: '4rem 2rem', background: C.card,
           borderRadius: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
         }}>
           <Star size={40} color="#d2d2d7" style={{ marginBottom: '1rem' }} />
-          <p style={{ color: C.muted, fontSize: '1rem', margin: 0, fontWeight: 500 }}>No reviews yet</p>
+          <p style={{ color: C.muted, fontSize: '1rem', margin: 0, fontWeight: 500 }}>No reviews here</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {reviews.map((review) => (
+          {reviews.filter((r) => filter === 'all' || (filter === 'pending' ? !r.isApproved : r.isApproved)).map((review) => (
             <div
               key={review._id}
               style={{
@@ -115,9 +158,18 @@ export default function AdminReviewsPage() {
                 gap: '1rem', flexWrap: 'wrap',
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  {/* Product name */}
-                  <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: C.text, marginBottom: '0.25rem' }}>
-                    {review.productId?.name || 'Unknown Product'}
+                  {/* Product name + status */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.9375rem', fontWeight: 600, color: C.text }}>
+                      {review.productId?.name || 'Unknown Product'}
+                    </span>
+                    <span style={{
+                      fontSize: '0.6875rem', fontWeight: 600, padding: '0.15rem 0.5rem', borderRadius: '980px',
+                      background: review.isApproved ? 'rgba(48,209,88,0.1)' : 'rgba(255,159,10,0.1)',
+                      color: review.isApproved ? '#30d158' : C.orange,
+                    }}>
+                      {review.isApproved ? 'Approved' : 'Pending'}
+                    </span>
                   </div>
                   {/* Customer */}
                   <div style={{ fontSize: '0.8125rem', color: C.muted, marginBottom: '0.5rem' }}>
@@ -149,23 +201,41 @@ export default function AdminReviewsPage() {
                     {new Date(review.createdAt).toLocaleDateString('en-NG', { year: 'numeric', month: 'short', day: 'numeric' })}
                   </div>
                 </div>
-                {/* Delete button */}
-                <button
-                  onClick={() => handleDelete(review._id)}
-                  disabled={deletingId === review._id}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '0.375rem',
-                    padding: '0.5rem 1rem', borderRadius: '10px',
-                    border: `1px solid ${C.red}`, background: 'rgba(255,69,58,0.06)',
-                    color: C.red, fontSize: '0.8125rem', fontWeight: 600,
-                    cursor: deletingId === review._id ? 'not-allowed' : 'pointer',
-                    fontFamily: 'inherit', opacity: deletingId === review._id ? 0.5 : 1,
-                    flexShrink: 0,
-                  }}
-                >
-                  <Trash2 size={14} />
-                  {deletingId === review._id ? 'Deleting...' : 'Delete'}
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0 }}>
+                  {/* Approve / Unapprove button */}
+                  <button
+                    onClick={() => handleApprove(review._id, !review.isApproved)}
+                    disabled={approvingId === review._id}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.375rem', justifyContent: 'center',
+                      padding: '0.5rem 1rem', borderRadius: '10px',
+                      border: `1px solid ${review.isApproved ? C.border : '#30d158'}`,
+                      background: review.isApproved ? C.card : 'rgba(48,209,88,0.08)',
+                      color: review.isApproved ? C.muted : '#30d158', fontSize: '0.8125rem', fontWeight: 600,
+                      cursor: approvingId === review._id ? 'not-allowed' : 'pointer',
+                      fontFamily: 'inherit', opacity: approvingId === review._id ? 0.5 : 1,
+                    }}
+                  >
+                    <Check size={14} />
+                    {approvingId === review._id ? 'Saving...' : review.isApproved ? 'Unapprove' : 'Approve'}
+                  </button>
+                  {/* Delete button */}
+                  <button
+                    onClick={() => handleDelete(review._id)}
+                    disabled={deletingId === review._id}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.375rem', justifyContent: 'center',
+                      padding: '0.5rem 1rem', borderRadius: '10px',
+                      border: `1px solid ${C.red}`, background: 'rgba(255,69,58,0.06)',
+                      color: C.red, fontSize: '0.8125rem', fontWeight: 600,
+                      cursor: deletingId === review._id ? 'not-allowed' : 'pointer',
+                      fontFamily: 'inherit', opacity: deletingId === review._id ? 0.5 : 1,
+                    }}
+                  >
+                    <Trash2 size={14} />
+                    {deletingId === review._id ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
               </div>
             </div>
           ))}

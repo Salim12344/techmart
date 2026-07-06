@@ -52,7 +52,7 @@ function SupportTicketContent({ params }) {
     try {
       const res = await fetch(`/api/support/${id}`);
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Failed to load ticket'); return; }
+      if (!res.ok) { showToast(data.error || 'Unable to load ticket right now'); return; }
       setTicket(data.ticket);
     } catch (err) {
       showToast(err.message);
@@ -95,7 +95,7 @@ function SupportTicketContent({ params }) {
         body: JSON.stringify({ message: reply.trim() }),
       });
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Failed to send message'); return; }
+      if (!res.ok) { showToast(data.error || 'Unable to send message right now'); return; }
       setTicket(data.ticket);
       setReply('');
     } catch (err) {

@@ -67,7 +67,7 @@ function addToCart(product, toast) {
     sku: variant.sku || '',
     price: variant.price,
     quantity: 1,
-    image: product.image || '',
+    image: product.colors?.find((c) => c.name === variant.color)?.image || product.image || '',
   };
 
   let cart = [];
@@ -106,7 +106,7 @@ function addVariantToCart({ product, variant, color, storage, quantity, toast })
     sku: variant.sku || '',
     price: variant.price,
     quantity,
-    image: product.image || '',
+    image: product.colors?.find((c) => c.name === color)?.image || product.image || '',
   };
 
   let cart = [];
@@ -256,7 +256,7 @@ function ProductsContent() {
         return next;
       });
       showToast(isWishlisted ? 'Removed from wishlist' : 'Added to wishlist', 'success');
-    } catch { showToast('Something went wrong'); }
+    } catch { showToast('Something went wrong. Please try again.'); }
   }
 
   function toggleCompare(product) {
@@ -1407,9 +1407,9 @@ function ProductsContent() {
                   flexShrink: 0,
                 }}
               >
-                {quickAddProduct.image ? (
+                {(quickAddProduct.colors?.find(c => c.name === quickAddColor)?.image || quickAddProduct.image) ? (
                   <Image
-                    src={quickAddProduct.image}
+                    src={quickAddProduct.colors?.find(c => c.name === quickAddColor)?.image || quickAddProduct.image}
                     alt={quickAddProduct.name}
                     width={64}
                     height={64}

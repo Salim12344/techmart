@@ -33,9 +33,9 @@ export async function DELETE(req, { params }) {
 
     await Review.findByIdAndDelete(id);
 
-    // Recalculate product averageRating and reviewCount
+    // Recalculate product averageRating and reviewCount from approved reviews only
     if (productId) {
-      const remaining = await Review.find({ productId });
+      const remaining = await Review.find({ productId, isApproved: true });
       const reviewCount = remaining.length;
       const averageRating = reviewCount > 0
         ? remaining.reduce((sum, r) => sum + r.rating, 0) / reviewCount
@@ -50,6 +50,39 @@ export async function DELETE(req, { params }) {
     }
 
     return Response.json({ success: true });
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function PATCH(req, { params }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== 'admin') {
+      return Response.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    const { id } = await params;
+    const { isApproved } = await req.json();
+
+    await connectDB();
+    const review = await Review.findById(id);
+    if (!review) {
+      return Response.json({ error: 'Review not found' }, { status: 404 });
+    }
+
+    review.isApproved = !!isApproved;
+    await review.save();
+
+    // Recalculate product averageRating and reviewCount from approved reviews only
+    const remaining = await Review.find({ productId: review.productId, isApproved: true });
+    const reviewCount = remaining.length;
+    const averageRating = reviewCount > 0
+      ? remaining.reduce((sum, r) => sum + r.rating, 0) / reviewCount
+      : 0;
+    await Product.findByIdAndUpdate(review.productId, { averageRating: Math.round(averageRating * 10) / 10, reviewCount });
+
+    return Response.json({ review });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

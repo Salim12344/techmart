@@ -51,7 +51,7 @@ export default function AdminDisputesPage() {
     try {
       const res = await fetch('/api/admin/disputes');
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Failed to load disputes'); return; }
+      if (!res.ok) { showToast(data.error || 'Unable to load disputes right now'); return; }
       setDisputes(data.disputes || []);
     } catch (err) {
       showToast(err.message);
@@ -76,7 +76,7 @@ export default function AdminDisputesPage() {
         body: JSON.stringify({ status, adminResponse }),
       });
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Failed to resolve dispute'); return; }
+      if (!res.ok) { showToast(data.error || 'Unable to resolve dispute right now'); return; }
 
       setDisputes(disputes.map(d => d._id === selectedDispute._id ? { ...d, status, adminNote: adminResponse } : d));
       setSelectedDispute({ ...selectedDispute, status, adminNote: adminResponse });

@@ -3,13 +3,14 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 
 const ToastContext = createContext(null);
+const MAX_VISIBLE_TOASTS = 2;
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
   const showToast = useCallback((message, type = 'error') => {
     const id = Date.now() + Math.random();
-    setToasts((prev) => [...prev, { id, message, type }]);
+    setToasts((prev) => [...prev.slice(-(MAX_VISIBLE_TOASTS - 1)), { id, message, type }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3500);
@@ -36,7 +37,7 @@ export function ToastProvider({ children }) {
 
 function ToastItem({ toast, onClose }) {
   const styles = {
-    error:   { bg: '#ff453a', icon: '✕', label: 'Error' },
+    error:   { bg: '#ff453a', icon: '✕', label: 'Heads Up' },
     success: { bg: '#30d158', icon: '✓', label: 'Done' },
     warning: { bg: '#ff9f0a', icon: '!', label: 'Warning' },
     info:    { bg: '#0071e3', icon: 'i', label: 'Info' },
