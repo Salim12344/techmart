@@ -426,10 +426,10 @@ export default function HomePage() {
                 color: C.text, margin: '0 0 0.375rem',
                 fontFamily: FONT, lineHeight: 1.1,
               }}>
-                Handpicked for you
+                Explore Our Products
               </h2>
               <p style={{ fontSize: '1.0625rem', color: C.muted, margin: 0, fontFamily: FONT }}>
-                Our most popular products, chosen by our team
+                A closer look at what we offer
               </p>
             </div>
             <Link href="/products" style={{
