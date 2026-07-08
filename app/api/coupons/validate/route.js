@@ -39,6 +39,10 @@ export async function POST(req) {
       return Response.json({ valid: false, error: 'This coupon has reached its usage limit' });
     }
 
+    if (coupon.usedBy?.some((id) => id.toString() === session.user.id)) {
+      return Response.json({ valid: false, error: 'You have already used this coupon' });
+    }
+
     return Response.json({
       valid: true,
       discountPercent: coupon.discountPercent,

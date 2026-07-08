@@ -7,6 +7,17 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { formatPrice } from '@/lib/formatPrice';
 
+// Softer, more muted version of the status colors used on /admin/orders - same
+// hues so the meaning stays consistent, lower-contrast since this is a secondary view.
+const SOFT_STATUS_STYLES = {
+  pending:   { bg: 'rgba(255,159,10,0.08)', color: '#c67d0a' },
+  confirmed: { bg: 'rgba(191,90,242,0.08)', color: '#9a4fc4' },
+  shipped:   { bg: 'rgba(0,113,227,0.08)',  color: '#0071e3' },
+  delivered: { bg: 'rgba(48,209,88,0.08)',  color: '#289649' },
+  cancelled: { bg: 'rgba(255,69,58,0.08)',  color: '#d9392f' },
+  refunded:  { bg: 'rgba(134,134,139,0.1)', color: '#86868b' },
+};
+
 export default function AdminUsersPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -250,30 +261,42 @@ export default function AdminUsersPage() {
               <DetailSection label="Account">
                 <DetailRow label="Email verified" value={selectedUser.emailVerified ? '✓ Yes' : '✗ No'} />
                 <DetailRow label="Joined" value={new Date(selectedUser.createdAt).toLocaleDateString()} />
-                <DetailRow
-                  label="Last active"
-                  value={selectedUser.lastLogin ? new Date(selectedUser.lastLogin).toLocaleDateString() : 'Never'}
-                />
               </DetailSection>
 
               <DetailSection label={`Orders (${selectedUser.orders?.length || 0})`} last>
                 {selectedUser.orders && selectedUser.orders.length > 0 ? (
-                  selectedUser.orders.map((order) => (
-                    <div key={order._id} style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      padding: '0.5rem 0.625rem',
-                      background: '#f5f5f7',
-                      borderRadius: '8px',
-                      marginBottom: '0.375rem',
-                      fontSize: '0.8125rem',
-                    }}>
-                      <span style={{ color: '#86868b' }}>{order.orderNumber}</span>
-                      <span style={{ fontWeight: 600, color: '#1d1d1f' }}>
-                        {formatPrice(order.totalAmount)}
-                      </span>
-                    </div>
-                  ))
+                  <div style={{ maxHeight: '340px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                    {selectedUser.orders.map((order) => {
+                      const ss = SOFT_STATUS_STYLES[order.status] || SOFT_STATUS_STYLES.pending;
+                      return (
+                        <div
+                          key={order._id}
+                          onClick={() => router.push(`/admin/orders?order=${order._id}`)}
+                          role="button"
+                          tabIndex={0}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '0.5rem 0.625rem',
+                            background: ss.bg,
+                            borderRadius: '8px',
+                            marginBottom: '0.375rem',
+                            fontSize: '0.8125rem',
+                            cursor: 'pointer',
+                            transition: 'filter 0.15s ease',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(0.97)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
+                        >
+                          <span style={{ color: ss.color, fontWeight: 500 }}>{order.orderNumber}</span>
+                          <span style={{ fontWeight: 600, color: '#1d1d1f' }}>
+                            {formatPrice(order.totalAmount)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 ) : (
                   <p style={{ fontSize: '0.8125rem', color: '#86868b', margin: 0 }}>No orders yet</p>
                 )}

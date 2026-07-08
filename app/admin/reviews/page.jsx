@@ -202,23 +202,25 @@ export default function AdminReviewsPage() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0 }}>
-                  {/* Approve / Unapprove button */}
-                  <button
-                    onClick={() => handleApprove(review._id, !review.isApproved)}
-                    disabled={approvingId === review._id}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '0.375rem', justifyContent: 'center',
-                      padding: '0.5rem 1rem', borderRadius: '10px',
-                      border: `1px solid ${review.isApproved ? C.border : '#30d158'}`,
-                      background: review.isApproved ? C.card : 'rgba(48,209,88,0.08)',
-                      color: review.isApproved ? C.muted : '#30d158', fontSize: '0.8125rem', fontWeight: 600,
-                      cursor: approvingId === review._id ? 'not-allowed' : 'pointer',
-                      fontFamily: 'inherit', opacity: approvingId === review._id ? 0.5 : 1,
-                    }}
-                  >
-                    <Check size={14} />
-                    {approvingId === review._id ? 'Saving...' : review.isApproved ? 'Unapprove' : 'Approve'}
-                  </button>
+                  {/* Approve button - once approved, only Delete remains (no unapproving) */}
+                  {!review.isApproved && (
+                    <button
+                      onClick={() => handleApprove(review._id, true)}
+                      disabled={approvingId === review._id}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '0.375rem', justifyContent: 'center',
+                        padding: '0.5rem 1rem', borderRadius: '10px',
+                        border: '1px solid #30d158',
+                        background: 'rgba(48,209,88,0.08)',
+                        color: '#30d158', fontSize: '0.8125rem', fontWeight: 600,
+                        cursor: approvingId === review._id ? 'not-allowed' : 'pointer',
+                        fontFamily: 'inherit', opacity: approvingId === review._id ? 0.5 : 1,
+                      }}
+                    >
+                      <Check size={14} />
+                      {approvingId === review._id ? 'Saving...' : 'Approve'}
+                    </button>
+                  )}
                   {/* Delete button */}
                   <button
                     onClick={() => handleDelete(review._id)}

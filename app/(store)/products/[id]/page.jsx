@@ -213,7 +213,7 @@ export default function ProductDetailPage({ params }) {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedColor, setSelectedColor] = useState(null);
-  const [selectedStorage, setSelectedStorage] = useState(null);
+  const [selectedStorage, setSelectedStorage] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
@@ -747,7 +747,7 @@ export default function ProductDetailPage({ params }) {
                 fontSize: '2rem',
                 fontWeight: 700,
                 color: C.text,
-                margin: '0 0 0.75rem',
+                margin: '0 0 0.5rem',
                 lineHeight: 1.15,
                 letterSpacing: '-0.03em',
               }}
@@ -762,7 +762,7 @@ export default function ProductDetailPage({ params }) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
-                  marginBottom: '1.25rem',
+                  marginBottom: '0.75rem',
                 }}
               >
                 <StarRating rating={product.averageRating} />
@@ -787,38 +787,24 @@ export default function ProductDetailPage({ params }) {
               </div>
             )}
 
-            {/* Description */}
-            {product.description && (
-              <p
-                style={{
-                  fontSize: '0.9375rem',
-                  lineHeight: 1.7,
-                  color: C.muted,
-                  margin: '0 0 1.75rem',
-                }}
-              >
-                {product.description}
-              </p>
-            )}
-
             {/* Divider */}
             <hr
               style={{
                 border: 'none',
                 borderTop: `1px solid ${C.border}`,
-                margin: '0 0 1.75rem',
+                margin: '0 0 1rem',
               }}
             />
 
             {/* Color Selector */}
             {product.colors?.length > 0 && (
-              <div style={{ marginBottom: '1.75rem' }}>
+              <div style={{ marginBottom: '1rem' }}>
                 <div
                   style={{
                     fontSize: '0.875rem',
                     fontWeight: 600,
                     color: C.text,
-                    marginBottom: '0.875rem',
+                    marginBottom: '0.625rem',
                   }}
                 >
                   Color{' '}
@@ -852,15 +838,24 @@ export default function ProductDetailPage({ params }) {
               </div>
             )}
 
+            {/* Divider */}
+            <hr
+              style={{
+                border: 'none',
+                borderTop: `1px solid ${C.border}`,
+                margin: '0 0 1rem',
+              }}
+            />
+
             {/* Storage Selector */}
             {product.storageOptions?.length > 0 && (
-              <div style={{ marginBottom: '1.75rem' }}>
+              <div style={{ marginBottom: '1rem' }}>
                 <div
                   style={{
                     fontSize: '0.875rem',
                     fontWeight: 600,
                     color: C.text,
-                    marginBottom: '0.875rem',
+                    marginBottom: '0.625rem',
                   }}
                 >
                   Storage
@@ -898,7 +893,7 @@ export default function ProductDetailPage({ params }) {
               style={{
                 border: 'none',
                 borderTop: `1px solid ${C.border}`,
-                margin: '0 0 1.75rem',
+                margin: '0 0 1rem',
               }}
             />
 
@@ -910,7 +905,7 @@ export default function ProductDetailPage({ params }) {
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
                 gap: '0.75rem',
-                marginBottom: '1.5rem',
+                marginBottom: '1rem',
               }}
             >
               <div>
@@ -961,6 +956,20 @@ export default function ProductDetailPage({ params }) {
                 {stockStatus.label}
               </span>
             </div>
+
+            {/* Description */}
+            {product.description && (
+              <p
+                style={{
+                  fontSize: '0.9375rem',
+                  lineHeight: 1.7,
+                  color: C.muted,
+                  margin: '0 0 1.75rem',
+                }}
+              >
+                {product.description}
+              </p>
+            )}
 
             {/* Quantity */}
             <div

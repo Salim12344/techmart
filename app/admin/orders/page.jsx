@@ -1,9 +1,9 @@
 // app/admin/orders/page.jsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/app/components/Toast';
 import { ArrowLeft } from 'lucide-react';
 import { formatPrice } from '@/lib/formatPrice';
@@ -29,9 +29,18 @@ const STATUS_STYLES = {
 const STATUS_FLOW = ['pending', 'confirmed', 'shipped', 'delivered'];
 
 export default function AdminOrdersPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '3rem', textAlign: 'center', color: '#86868b' }}>Loading orders...</div>}>
+      <AdminOrdersContent />
+    </Suspense>
+  );
+}
+
+function AdminOrdersContent() {
   const { data: session } = useSession();
   const { showToast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +56,12 @@ export default function AdminOrdersPage() {
         const data = await res.json();
         if (!res.ok) { showToast(data.error || 'Unable to load orders right now'); return; }
         setOrders(data.orders || []);
+
+        const highlightId = searchParams.get('order');
+        if (highlightId) {
+          const match = (data.orders || []).find((o) => o._id === highlightId);
+          if (match) setSelectedOrder(match);
+        }
       } catch (err) {
         showToast(err.message);
       } finally {
@@ -55,6 +70,7 @@ export default function AdminOrdersPage() {
     };
 
     if (session?.user?.role === 'admin') fetchOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
 
   const handleUpdateStatus = async (orderId, newStatus) => {
@@ -72,6 +88,7 @@ export default function AdminOrdersPage() {
       if (selectedOrder?._id === orderId) {
         setSelectedOrder({ ...selectedOrder, status: newStatus });
       }
+      window.dispatchEvent(new Event('admin-orders-read'));
       showToast(`Order marked as ${newStatus}`, 'success');
     } catch (err) {
       showToast(err.message);

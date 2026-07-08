@@ -59,6 +59,12 @@ function LoginContent() {
         if (session?.user?.role) break;
       }
 
+      // Flag whether to greet as a fresh signup or a returning user - consumed
+      // once by the Navbar after the redirect completes.
+      const isNewAccount = sessionStorage.getItem('techmart-new-account');
+      sessionStorage.removeItem('techmart-new-account');
+      sessionStorage.setItem('techmart-welcome', isNewAccount ? 'new' : 'back');
+
       if (session?.user?.role === 'admin') {
         window.location.href = '/admin';
       } else {

@@ -1,7 +1,7 @@
 // app/admin/page.jsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, cloneElement } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -226,7 +226,7 @@ function MetricCard({ label, value, subtitle, icon, accentColor, action }) {
         fontSize: '1.125rem',
         marginBottom: '0.75rem',
       }}>
-        {icon}
+        {cloneElement(icon, { color: accentColor, strokeWidth: 2.25 })}
       </div>
       <p style={{ fontSize: '0.8125rem', color: '#86868b', fontWeight: 500, margin: '0 0 0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
         {label}

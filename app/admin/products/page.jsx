@@ -148,6 +148,10 @@ export default function AdminProductsPage() {
   const [newColor, setNewColor] = useState({ name: '', hex: '#000000', image: '' });
   const [colorImageUploading, setColorImageUploading] = useState(false);
   const [newStorage, setNewStorage] = useState('');
+  // Spec fields the admin has removed for this specific product - a category's spec
+  // fields are just a starting template (e.g. "Mac" includes Display Size for MacBooks),
+  // not every field applies to every product in that category (e.g. Mac mini has no display).
+  const [excludedSpecFields, setExcludedSpecFields] = useState([]);
 
   // ── Categories ───────────────────────────────────────────────────
   const [categories, setCategories] = useState([]);
@@ -237,8 +241,10 @@ export default function AdminProductsPage() {
   const addColor = () => {
     if (!newColor.name.trim()) { showToast('Color name is required'); return; }
     if (form.colors.some(c => c.name.toLowerCase() === newColor.name.toLowerCase())) { showToast('Color already exists'); return; }
-    const c = { name: newColor.name, hex: newColor.hex, image: newColor.image || '' };
-    const newVariants = form.storageOptions.map(s => ({ color: c.name, storage: s, sku: generateSKU(form.name, c.name, s), price: 0, stock: 0 }));
+    if (!newColor.image) { showToast('Please upload an image for this color'); return; }
+    const c = { name: newColor.name, hex: newColor.hex, image: newColor.image };
+    const storageList = form.storageOptions.length > 0 ? form.storageOptions : [''];
+    const newVariants = storageList.map(s => ({ color: c.name, storage: s, sku: generateSKU(form.name, c.name, s), price: 0, stock: 0 }));
     setForm(prev => ({ ...prev, colors: [...prev.colors, c], variants: [...prev.variants, ...newVariants] }));
     setNewColor({ name: '', hex: '#000000', image: '' });
   };
@@ -256,8 +262,9 @@ export default function AdminProductsPage() {
     finally { setColorImageUploading(false); }
   };
 
-  const removeColor = (i) => {
+  const removeColor = async (i) => {
     const removed = form.colors[i].name;
+    if (!(await confirmAction({ title: `Remove "${removed}"?`, message: 'This will also delete every variant (price/stock) for this color.', confirmLabel: 'Remove' }))) return;
     setForm(prev => ({ ...prev, colors: prev.colors.filter((_, idx) => idx !== i), variants: prev.variants.filter(v => v.color !== removed) }));
   };
 
@@ -266,13 +273,28 @@ export default function AdminProductsPage() {
     if (form.storageOptions.includes(newStorage.trim())) { showToast('Storage option already exists'); return; }
     const s = newStorage.trim();
     const newVariants = form.colors.map(c => ({ color: c.name, storage: s, sku: generateSKU(form.name, c.name, s), price: 0, stock: 0 }));
-    setForm(prev => ({ ...prev, storageOptions: [...prev.storageOptions, s], variants: [...prev.variants, ...newVariants] }));
+    setForm(prev => ({
+      ...prev,
+      storageOptions: [...prev.storageOptions, s],
+      // First real storage option added - drop the placeholder no-storage variants.
+      variants: [...prev.variants.filter(v => v.storage !== ''), ...newVariants],
+    }));
     setNewStorage('');
   };
 
   const removeStorage = (i) => {
     const removed = form.storageOptions[i];
-    setForm(prev => ({ ...prev, storageOptions: prev.storageOptions.filter((_, idx) => idx !== i), variants: prev.variants.filter(v => v.storage !== removed) }));
+    setForm(prev => {
+      const remainingOptions = prev.storageOptions.filter((_, idx) => idx !== i);
+      const remainingVariants = prev.variants.filter(v => v.storage !== removed);
+      // No storage options left - fall back to one no-storage variant per color instead
+      // of leaving colors with zero variants.
+      if (remainingOptions.length === 0) {
+        const placeholderVariants = prev.colors.map(c => ({ color: c.name, storage: '', sku: generateSKU(prev.name, c.name, ''), price: 0, stock: 0 }));
+        return { ...prev, storageOptions: remainingOptions, variants: placeholderVariants };
+      }
+      return { ...prev, storageOptions: remainingOptions, variants: remainingVariants };
+    });
   };
 
   const getVariant = (colorName, storage) =>
@@ -298,9 +320,11 @@ export default function AdminProductsPage() {
     if (!form.description.trim()) { showToast('Product description is required'); return; }
     if (!form.warranty.trim()) { showToast('Warranty information is required'); return; }
     if (form.colors.length === 0) { showToast('Add at least one color'); return; }
-    if (form.storageOptions.length === 0) { showToast('Add at least one storage option'); return; }
+    const missingColorImages = form.colors.filter(c => !c.image);
+    if (missingColorImages.length > 0) { showToast(`Please upload an image for: ${missingColorImages.map(c => c.name).join(', ')}`); return; }
 
-    const allCombos = form.colors.flatMap(c => form.storageOptions.map(s => ({ color: c.name, storage: s })));
+    const storageList = form.storageOptions.length > 0 ? form.storageOptions : [''];
+    const allCombos = form.colors.flatMap(c => storageList.map(s => ({ color: c.name, storage: s })));
     const missingPrice = allCombos.filter(({ color, storage }) => { const v = form.variants.find(v => v.color === color && v.storage === storage); return !v || !v.price || v.price <= 0; });
     if (missingPrice.length > 0) { showToast(`Price required for: ${missingPrice.map(v => `${v.color}/${v.storage}`).join(', ')}`); return; }
 
@@ -311,15 +335,18 @@ export default function AdminProductsPage() {
     const dups = allSKUs.filter((sku, i) => allSKUs.indexOf(sku) !== i);
     if (dups.length > 0) { showToast(`Duplicate SKUs: ${[...new Set(dups)].join(', ')}`); return; }
 
-    if (specFields.length > 0) {
-      const empty = specFields.filter(f => !form.specs[f.key]?.trim());
+    const applicableSpecFields = specFields.filter(f => !excludedSpecFields.includes(f.key));
+    if (applicableSpecFields.length > 0) {
+      const empty = applicableSpecFields.filter(f => !form.specs[f.key]?.trim());
       if (empty.length > 0) { showToast(`Please fill in: ${empty.map(f => f.label).join(', ')}`); return; }
     }
+    // Drop any leftover values for fields removed from this product
+    const specs = Object.fromEntries(Object.entries(form.specs).filter(([key]) => !excludedSpecFields.includes(key)));
 
     const url = editingId ? `/api/products/${editingId}` : '/api/products';
     const method = editingId ? 'PATCH' : 'POST';
     try {
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, tags: form.tags.filter(Boolean) }) });
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, specs, tags: form.tags.filter(Boolean) }) });
       const data = await res.json();
       if (!res.ok) { showToast(data.error || 'Unable to save product right now'); return; }
       const r = await fetch('/api/products');
@@ -333,11 +360,14 @@ export default function AdminProductsPage() {
 
   const resetForm = () => {
     setForm({ name: '', category: '', description: '', image: '', warranty: '', tags: [], colors: [], storageOptions: [], variants: [], specs: {} });
-    setEditingId(null); setNewColor({ name: '', hex: '#000000', image: '' }); setNewStorage('');
+    setEditingId(null); setNewColor({ name: '', hex: '#000000', image: '' }); setNewStorage(''); setExcludedSpecFields([]);
   };
 
   const handleEdit = (product) => {
     setForm({ name: product.name, category: product.category, description: product.description, image: product.image, warranty: product.warranty, tags: product.tags || [], colors: product.colors || [], storageOptions: product.storageOptions || [], variants: product.variants || [], specs: product.specs || {} });
+    // Any category spec field with no saved value on this product was previously removed - keep it removed.
+    const categorySpecFields = categories.find(c => c.name === product.category)?.specFields || DEFAULT_SPEC_FIELDS[product.category] || [];
+    setExcludedSpecFields(categorySpecFields.filter(f => product.specs?.[f.key] === undefined).map(f => f.key));
     setEditingId(product._id); setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -575,16 +605,17 @@ export default function AdminProductsPage() {
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     <input style={{ ...smInputStyle, flex: 1 }} type="text" placeholder="Color name (e.g., Space Black)" value={newColor.name} onChange={e => setNewColor({ ...newColor, name: e.target.value })} />
                     <input type="color" value={newColor.hex} onChange={e => setNewColor({ ...newColor, hex: e.target.value })} style={{ width: '44px', height: '38px', borderRadius: '8px', border: `1px solid ${C.border}`, cursor: 'pointer', padding: '2px' }} />
-                    <label style={{ width: '40px', height: '40px', borderRadius: '8px', border: `1px solid ${C.border}`, background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: colorImageUploading ? 'wait' : 'pointer', flexShrink: 0, overflow: 'hidden', position: 'relative' }} title="Upload color image">
+                    <label style={{ width: '40px', height: '40px', borderRadius: '8px', border: newColor.image ? `1px solid ${C.border}` : `1.5px dashed ${C.red}`, background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: colorImageUploading ? 'wait' : 'pointer', flexShrink: 0, overflow: 'hidden', position: 'relative' }} title="Upload color image (required)">
                       <input type="file" accept="image/*" onChange={handleColorImageUpload} disabled={colorImageUploading} style={{ display: 'none' }} />
                       {newColor.image ? (
                         <Image src={newColor.image} alt="Color" width={40} height={40} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
-                        <span style={{ fontSize: '1.25rem', color: colorImageUploading ? C.muted : C.blue, fontWeight: 300, lineHeight: 1 }}>{colorImageUploading ? '...' : '+'}</span>
+                        <span style={{ fontSize: '1.25rem', color: colorImageUploading ? C.muted : C.red, fontWeight: 300, lineHeight: 1 }}>{colorImageUploading ? '...' : '+'}</span>
                       )}
                     </label>
                     <button type="button" onClick={addColor} style={{ background: C.blue, color: '#fff', border: 'none', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.8125rem', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>Add</button>
                   </div>
+                  <p style={{ fontSize: '0.75rem', color: C.muted, margin: '0.5rem 0 0' }}>An image is required for each color.</p>
                 </div>
 
                 {/* Storage */}
@@ -607,21 +638,25 @@ export default function AdminProductsPage() {
                 </div>
 
                 {/* Variant Matrix */}
-                {form.colors.length > 0 && form.storageOptions.length > 0 && (
+                {form.colors.length > 0 && (
                   <div style={sectionStyle}>
                     <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: C.text, margin: '0 0 0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Variant Pricing & Stock</p>
-                    <p style={{ fontSize: '0.8125rem', color: C.muted, margin: '0 0 0.75rem' }}>Fill in price and stock for each color × storage combination. SKUs are auto-generated.</p>
+                    <p style={{ fontSize: '0.8125rem', color: C.muted, margin: '0 0 0.75rem' }}>
+                      {form.storageOptions.length > 0
+                        ? 'Fill in price and stock for each color × storage combination. SKUs are auto-generated.'
+                        : 'Fill in price and stock for each color. SKUs are auto-generated. Add a storage option above if this product comes in different sizes/capacities.'}
+                    </p>
                     <div style={{ overflowX: 'auto' }}>
                       <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
                         <thead>
                           <tr>
-                            {['Color', 'Storage', 'SKU', 'Price (₦)', 'Stock'].map(h => (
+                            {(form.storageOptions.length > 0 ? ['Color', 'Storage', 'SKU', 'Price (₦)', 'Stock'] : ['Color', 'SKU', 'Price (₦)', 'Stock']).map(h => (
                               <th key={h} style={{ padding: '0.5rem 0.75rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: `1px solid ${C.border}` }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
-                          {form.colors.map(color => form.storageOptions.map(storage => {
+                          {form.colors.map(color => (form.storageOptions.length > 0 ? form.storageOptions : ['']).map(storage => {
                             const variant = getVariant(color.name, storage);
                             return (
                               <tr key={`${color.name}-${storage}`}>
@@ -631,7 +666,9 @@ export default function AdminProductsPage() {
                                     <span style={{ fontSize: '0.875rem', color: C.text }}>{color.name}</span>
                                   </div>
                                 </td>
-                                <td style={{ padding: '0.625rem 0.75rem', fontSize: '0.875rem', fontWeight: 600, color: C.text, borderBottom: `1px solid ${C.bg}` }}>{storage}</td>
+                                {form.storageOptions.length > 0 && (
+                                  <td style={{ padding: '0.625rem 0.75rem', fontSize: '0.875rem', fontWeight: 600, color: C.text, borderBottom: `1px solid ${C.bg}` }}>{storage}</td>
+                                )}
                                 <td style={{ padding: '0.625rem 0.75rem', borderBottom: `1px solid ${C.bg}` }}>
                                   <input type="text" value={variant.sku} onChange={e => updateVariant(color.name, storage, 'sku', e.target.value)}
                                     style={{ ...smInputStyle, width: '180px', fontFamily: 'monospace', fontSize: '0.75rem' }} />
@@ -657,19 +694,37 @@ export default function AdminProductsPage() {
                 {specFields.length > 0 && (
                   <div style={sectionStyle}>
                     <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: C.text, margin: '0 0 0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Specifications — {form.category}</p>
-                    <p style={{ fontSize: '0.8125rem', color: C.muted, margin: '0 0 0.75rem' }}>All fields are required.</p>
+                    <p style={{ fontSize: '0.8125rem', color: C.muted, margin: '0 0 0.75rem' }}>Required unless removed - not every field applies to every product in this category (e.g. Mac mini has no display).</p>
                     <div className="admin-spec-fields-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                      {specFields.map(field => (
+                      {specFields.filter(field => !excludedSpecFields.includes(field.key)).map(field => (
                         <div key={field.key}>
-                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: C.muted, marginBottom: '0.375rem' }}>
-                            {field.label}{field.unit && <span style={{ color: C.muted, fontWeight: 400 }}> ({field.unit})</span>}
-                          </label>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.375rem' }}>
+                            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: C.muted }}>
+                              {field.label}{field.unit && <span style={{ color: C.muted, fontWeight: 400 }}> ({field.unit})</span>}
+                            </label>
+                            <button type="button" onClick={() => setExcludedSpecFields(prev => [...prev, field.key])}
+                              title="This field doesn't apply to this product" aria-label={`Remove ${field.label} field`}
+                              style={{ background: 'none', border: 'none', color: C.muted, cursor: 'pointer', fontSize: '0.75rem', padding: 0 }}>✕</button>
+                          </div>
                           <input type={field.type} placeholder={field.placeholder} value={form.specs[field.key] || ''}
                             onChange={e => setForm(prev => ({ ...prev, specs: { ...prev.specs, [field.key]: e.target.value } }))}
                             style={{ ...smInputStyle, width: '100%' }} />
                         </div>
                       ))}
                     </div>
+                    {specFields.some(field => excludedSpecFields.includes(field.key)) && (
+                      <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: `1px solid ${C.border}` }}>
+                        <p style={{ fontSize: '0.75rem', color: C.muted, margin: '0 0 0.5rem' }}>Not applicable to this product:</p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          {specFields.filter(field => excludedSpecFields.includes(field.key)).map(field => (
+                            <button key={field.key} type="button" onClick={() => setExcludedSpecFields(prev => prev.filter(k => k !== field.key))}
+                              style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', background: C.card, borderRadius: '980px', border: `1px solid ${C.border}`, fontSize: '0.8125rem', color: C.text, cursor: 'pointer', fontFamily: 'inherit' }}>
+                              + {field.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

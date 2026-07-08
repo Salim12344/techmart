@@ -119,6 +119,7 @@ export default function AdminSupportPage() {
       setSelectedTicket(data.ticket);
       setTickets(prev => prev.map(t => t._id === data.ticket._id ? data.ticket : t));
       setReply('');
+      window.dispatchEvent(new Event('admin-support-read'));
       showToast('Ticket updated', 'success');
     } catch (err) {
       showToast(err.message);

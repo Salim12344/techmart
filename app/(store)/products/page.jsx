@@ -188,7 +188,7 @@ function ProductsContent() {
   const [cartProductIds, setCartProductIds] = useState(new Set());
   const [quickAddProduct, setQuickAddProduct] = useState(null);
   const [quickAddColor, setQuickAddColor] = useState(null);
-  const [quickAddStorage, setQuickAddStorage] = useState(null);
+  const [quickAddStorage, setQuickAddStorage] = useState('');
   const [quickAddQuantity, setQuickAddQuantity] = useState(1);
 
   useEffect(() => {
@@ -333,7 +333,7 @@ function ProductsContent() {
     if (hasMultipleColors || hasMultipleStorage) {
       setQuickAddProduct(product);
       setQuickAddColor(product.colors?.[0]?.name || null);
-      setQuickAddStorage(product.storageOptions?.[0] || null);
+      setQuickAddStorage(product.storageOptions?.[0] || '');
       setQuickAddQuantity(1);
     } else {
       addToCart(product, showToast, authStatus);
@@ -593,7 +593,7 @@ function ProductsContent() {
               return (
                 <button
                   key={cat}
-                  onClick={() => setSelectedCategory(cat)}
+                  onClick={() => setSelectedCategory(isActive && cat !== 'All' ? 'All' : cat)}
                   style={{
                     padding: '0.5rem 1.25rem',
                     borderRadius: '980px',
@@ -757,31 +757,6 @@ function ProductsContent() {
             )}
           </div>
 
-          {/* Clear Filters */}
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.375rem',
-                padding: '0.5rem 1rem',
-                borderRadius: '980px',
-                border: 'none',
-                background: 'rgba(255,69,58,0.08)',
-                color: C.red,
-                fontSize: '0.8125rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                transition: 'all 0.2s ease',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <X size={12} />
-              Clear
-            </button>
-          )}
         </div>
 
         {/* Product Grid */}
@@ -1119,6 +1094,7 @@ function ProductsContent() {
 
                     {/* Price Row */}
                     <div
+                      className="product-price-row"
                       style={{
                         marginTop: 'auto',
                         display: 'flex',
@@ -1127,6 +1103,7 @@ function ProductsContent() {
                       }}
                     >
                       <p
+                        className="product-price-text"
                         style={{
                           fontSize: '1.125rem',
                           fontWeight: 700,
@@ -1141,6 +1118,7 @@ function ProductsContent() {
 
                       {/* Stock Dot */}
                       <span
+                        className="product-stock-dot"
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -1658,6 +1636,17 @@ function ProductsContent() {
           }
           .products-compare-bar {
             bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+          }
+          .product-price-row {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.25rem !important;
+          }
+          .product-price-text {
+            flex: none !important;
+          }
+          .product-stock-dot {
+            font-size: 0.625rem !important;
           }
         }
       `}</style>

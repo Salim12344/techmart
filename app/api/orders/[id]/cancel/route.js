@@ -1,6 +1,7 @@
 import { connectDB } from '@/lib/db';
 import Order from '@/models/order';
 import Product from '@/models/product';
+import Coupon from '@/models/Coupon';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { sendOrderCancellationEmail } from '@/lib/email';
@@ -65,6 +66,16 @@ export async function POST(req, { params }) {
     order.status = 'cancelled';
     order.cancelledAt = new Date();
     await order.save();
+
+    // Release the coupon use reserved for this order - the customer didn't end up
+    // keeping the discount, so it shouldn't count against their one-time use or the
+    // coupon's overall usage cap.
+    if (order.couponCode) {
+      await Coupon.findOneAndUpdate(
+        { code: order.couponCode },
+        { $inc: { usedCount: -1 }, $pull: { usedBy: order.userId } }
+      );
+    }
 
     // Send cancellation email
     try {

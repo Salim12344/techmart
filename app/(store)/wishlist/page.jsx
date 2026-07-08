@@ -86,7 +86,7 @@ export default function WishlistPage() {
   const [removingId, setRemovingId] = useState(null);
   const [quickAddProduct, setQuickAddProduct] = useState(null);
   const [quickAddColor, setQuickAddColor] = useState(null);
-  const [quickAddStorage, setQuickAddStorage] = useState(null);
+  const [quickAddStorage, setQuickAddStorage] = useState('');
   const [quickAddQuantity, setQuickAddQuantity] = useState(1);
 
   useEffect(() => {
@@ -174,7 +174,7 @@ export default function WishlistPage() {
     if (hasMultipleColors || hasMultipleStorage) {
       setQuickAddProduct(product);
       setQuickAddColor(product.colors?.[0]?.name || null);
-      setQuickAddStorage(product.storageOptions?.[0] || null);
+      setQuickAddStorage(product.storageOptions?.[0] || '');
       setQuickAddQuantity(1);
       return;
     }

@@ -14,21 +14,75 @@ function AdminSidebar({ mobileOpen, setMobileOpen }) {
   const { data: session } = useSession();
   const confirmAction = useConfirm();
   const [collapsed, setCollapsed] = useState(false);
+  const [badges, setBadges] = useState({ Orders: 0, Disputes: 0, Support: 0 });
 
   // Close mobile sidebar on route change
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
 
+  // Orders awaiting shipment, disputes still open, and support tickets a customer
+  // messaged last (admin hasn't replied yet) all count as needing attention. Each
+  // badge clears itself once handled - order shipped, dispute resolved, or admin
+  // replies - and also refreshes instantly on an 'admin-<x>-read' event dispatched
+  // by that section's own page, instead of waiting for the next 60s poll.
+  useEffect(() => {
+    async function checkOrders() {
+      try {
+        const res = await fetch('/api/admin/orders');
+        if (res.ok) {
+          const data = await res.json();
+          const count = (data.orders || []).filter((o) => o.status === 'pending').length;
+          setBadges((prev) => ({ ...prev, Orders: count }));
+        }
+      } catch {}
+    }
+    async function checkDisputes() {
+      try {
+        const res = await fetch('/api/admin/disputes');
+        if (res.ok) {
+          const data = await res.json();
+          const count = (data.disputes || []).filter((d) => d.status === 'OPEN').length;
+          setBadges((prev) => ({ ...prev, Disputes: count }));
+        }
+      } catch {}
+    }
+    async function checkSupport() {
+      try {
+        const res = await fetch('/api/admin/support');
+        if (res.ok) {
+          const data = await res.json();
+          const count = (data.tickets || []).filter((t) => {
+            if (t.status === 'closed' || !t.messages || t.messages.length === 0) return false;
+            return t.messages[t.messages.length - 1].sender === 'user';
+          }).length;
+          setBadges((prev) => ({ ...prev, Support: count }));
+        }
+      } catch {}
+    }
+
+    checkOrders(); checkDisputes(); checkSupport();
+    const interval = setInterval(() => { checkOrders(); checkDisputes(); checkSupport(); }, 60000);
+    window.addEventListener('admin-orders-read', checkOrders);
+    window.addEventListener('admin-disputes-read', checkDisputes);
+    window.addEventListener('admin-support-read', checkSupport);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('admin-orders-read', checkOrders);
+      window.removeEventListener('admin-disputes-read', checkDisputes);
+      window.removeEventListener('admin-support-read', checkSupport);
+    };
+  }, []);
+
   const navItems = [
-    { href: '/admin', label: 'Dashboard', icon: <LayoutDashboard size={18} />, exact: true },
-    { href: '/admin/products', label: 'Products & Categories', icon: <Package size={18} /> },
-    { href: '/admin/orders', label: 'Orders', icon: <ShoppingCart size={18} /> },
-    { href: '/admin/users', label: 'Users', icon: <Users size={18} /> },
-    { href: '/admin/coupons', label: 'Coupons', icon: <Tag size={18} /> },
-    { href: '/admin/disputes', label: 'Disputes', icon: <AlertTriangle size={18} /> },
-    { href: '/admin/support', label: 'Support', icon: <MessageSquare size={18} /> },
-    { href: '/admin/reviews', label: 'Reviews', icon: <MessageCircle size={18} /> },
+    { href: '/admin', label: 'Dashboard', icon: <LayoutDashboard size={19} strokeWidth={2.25} />, exact: true },
+    { href: '/admin/products', label: 'Products & Categories', icon: <Package size={19} strokeWidth={2.25} /> },
+    { href: '/admin/orders', label: 'Orders', icon: <ShoppingCart size={19} strokeWidth={2.25} /> },
+    { href: '/admin/users', label: 'Users', icon: <Users size={19} strokeWidth={2.25} /> },
+    { href: '/admin/coupons', label: 'Coupons', icon: <Tag size={19} strokeWidth={2.25} /> },
+    { href: '/admin/disputes', label: 'Disputes', icon: <AlertTriangle size={19} strokeWidth={2.25} /> },
+    { href: '/admin/support', label: 'Support', icon: <MessageSquare size={19} strokeWidth={2.25} /> },
+    { href: '/admin/reviews', label: 'Reviews', icon: <MessageCircle size={19} strokeWidth={2.25} /> },
   ];
 
   const isActive = (item) => {
@@ -138,7 +192,7 @@ function AdminSidebar({ mobileOpen, setMobileOpen }) {
               borderRadius: '10px',
               marginBottom: '2px',
               textDecoration: 'none',
-              color: isActive(item) ? '#0071e3' : '#3d3d40',
+              color: isActive(item) ? '#0071e3' : '#1d1d1f',
               background: isActive(item) ? 'rgba(0, 113, 227, 0.08)' : 'transparent',
               fontWeight: isActive(item) ? 600 : 400,
               fontSize: '0.9375rem',
@@ -149,8 +203,59 @@ function AdminSidebar({ mobileOpen, setMobileOpen }) {
             }}
             title={collapsed ? item.label : ''}
           >
-            <span style={{ fontSize: '1rem', flexShrink: 0 }}>{item.icon}</span>
-            {!collapsed && <span>{item.label}</span>}
+            <span style={{ fontSize: '1rem', flexShrink: 0, position: 'relative' }}>
+              {item.icon}
+              {badges[item.label] > 0 && collapsed && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: -4,
+                    right: -6,
+                    minWidth: 14,
+                    height: 14,
+                    borderRadius: 7,
+                    background: '#ff453a',
+                    color: '#fff',
+                    fontSize: '0.5625rem',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 3px',
+                    lineHeight: 1,
+                    boxShadow: '0 1px 4px rgba(255,69,58,0.4)',
+                  }}
+                >
+                  {badges[item.label] > 99 ? '99+' : badges[item.label]}
+                </span>
+              )}
+            </span>
+            {!collapsed && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                {item.label}
+                {badges[item.label] > 0 && (
+                  <span
+                    style={{
+                      minWidth: 15,
+                      height: 15,
+                      borderRadius: 8,
+                      background: '#ff453a',
+                      color: '#fff',
+                      fontSize: '0.5625rem',
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0 3px',
+                      lineHeight: 1,
+                      boxShadow: '0 1px 4px rgba(255,69,58,0.4)',
+                    }}
+                  >
+                    {badges[item.label] > 99 ? '99+' : badges[item.label]}
+                  </span>
+                )}
+              </span>
+            )}
           </Link>
         ))}
       </nav>

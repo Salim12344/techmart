@@ -4,6 +4,7 @@ import Refund from '@/models/Refund';
 import Order from '@/models/order';
 import Product from '@/models/product';
 import User from '@/models/user';
+import Coupon from '@/models/Coupon';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { sendDisputeResolutionEmail } from '@/lib/email';
@@ -89,6 +90,15 @@ export async function PATCH(req, { params }) {
 
       order.status = 'refunded';
       await order.save();
+
+      // Release the coupon use reserved for this order, same as a self-service
+      // cancellation - the customer ended up not keeping the discount.
+      if (order.couponCode) {
+        await Coupon.findOneAndUpdate(
+          { code: order.couponCode },
+          { $inc: { usedCount: -1 }, $pull: { usedBy: order.userId } }
+        );
+      }
     }
 
     await dispute.save();

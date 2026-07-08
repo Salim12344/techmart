@@ -54,21 +54,32 @@ export async function POST(req) {
 
     if (couponCode) {
       // Atomic increment: only succeeds if the coupon is still active, unexpired,
-      // and below its usage cap at the moment of the update. This prevents a
-      // race condition where two concurrent checkouts could both pass a
-      // read-then-write usedCount check when only one use remains.
+      // below its usage cap, and not already used by this user, all at the moment
+      // of the update. This prevents a race condition where two concurrent
+      // checkouts could both pass a read-then-write usedCount check when only one
+      // use remains, and enforces one redemption per user per coupon.
       const coupon = await Coupon.findOneAndUpdate(
         {
           code: couponCode.toUpperCase(),
           isActive: true,
           expiresAt: { $gt: new Date() },
           $expr: { $lt: ['$usedCount', '$maxUses'] },
+          usedBy: { $ne: session.user.id },
         },
-        { $inc: { usedCount: 1 } },
+        { $inc: { usedCount: 1 }, $push: { usedBy: session.user.id } },
         { new: true }
       );
       if (!coupon) {
-        return Response.json({ error: 'Invalid, expired, or fully used coupon' }, { status: 400 });
+        // The atomic check above is what's actually safe against races - this is
+        // just a best-effort read to give a more specific error message.
+        const existing = await Coupon.findOne({ code: couponCode.toUpperCase() });
+        if (existing?.usedBy?.some((id) => id.toString() === session.user.id)) {
+          return Response.json({ error: 'You have already used this coupon' }, { status: 400 });
+        }
+        if (existing && existing.usedCount >= existing.maxUses) {
+          return Response.json({ error: 'This coupon has reached its usage limit' }, { status: 400 });
+        }
+        return Response.json({ error: 'Invalid or expired coupon' }, { status: 400 });
       }
       if (coupon.discountPercent > 10) {
         // shouldn't happen if created correctly, but guard anyway
@@ -121,7 +132,10 @@ export async function POST(req) {
       await Order.findByIdAndDelete(order._id);
       if (validatedCouponCode) {
         // Release the coupon use we atomically reserved, since the order never went through.
-        await Coupon.findOneAndUpdate({ code: validatedCouponCode }, { $inc: { usedCount: -1 } });
+        await Coupon.findOneAndUpdate(
+          { code: validatedCouponCode },
+          { $inc: { usedCount: -1 }, $pull: { usedBy: session.user.id } }
+        );
       }
       const keyPreview = process.env.PAYSTACK_SECRET_KEY ? `${process.env.PAYSTACK_SECRET_KEY.slice(0, 8)}...` : 'NOT SET';
       console.error('Paystack error:', paystackData.message, 'Key preview:', keyPreview);

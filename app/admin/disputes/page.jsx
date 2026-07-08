@@ -81,6 +81,7 @@ export default function AdminDisputesPage() {
       setDisputes(disputes.map(d => d._id === selectedDispute._id ? { ...d, status, adminNote: adminResponse } : d));
       setSelectedDispute({ ...selectedDispute, status, adminNote: adminResponse });
       setAdminResponse('');
+      window.dispatchEvent(new Event('admin-disputes-read'));
       showToast(`Dispute ${status.toLowerCase()}`, 'success');
     } catch (err) {
       showToast(err.message);

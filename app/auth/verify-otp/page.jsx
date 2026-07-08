@@ -114,6 +114,9 @@ function VerifyOtpContent() {
       }
 
       showToast(data.message || 'Email verified successfully!', 'success');
+      // Flag this as a fresh signup so the next successful login shows "Welcome"
+      // instead of "Welcome back" - consumed once by the login page.
+      sessionStorage.setItem('techmart-new-account', '1');
       router.push('/auth/login');
     } catch (err) {
       showToast(err.message || 'Something went wrong. Please try again.');

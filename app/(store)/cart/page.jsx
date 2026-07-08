@@ -28,6 +28,7 @@ export default function CartPage() {
   const [cart, setCart] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [stockMap, setStockMap] = useState({});
+  const [stockChecked, setStockChecked] = useState(false);
   const { showToast } = useToast();
   const confirmAction = useConfirm();
 
@@ -63,6 +64,7 @@ export default function CartPage() {
         });
         if (cancelled) return;
         setStockMap(map);
+        setStockChecked(true);
 
         // Clamp quantities that exceed current stock, but keep out-of-stock
         // items in the cart (quantity floored at 1) so the user can see them.
@@ -98,7 +100,7 @@ export default function CartPage() {
   function updateQuantity(index, delta) {
     const item = cart[index];
     if (delta > 0) {
-      const stock = stockMap[item.sku] ?? Infinity;
+      const stock = stockChecked ? (stockMap[item.sku] ?? 0) : Infinity;
       if (item.quantity >= stock) {
         showToast(`Only ${stock} in stock`, 'error');
         return;
@@ -183,7 +185,9 @@ export default function CartPage() {
   }
 
   const isOutOfStock = (item) => stockMap[item.sku] !== undefined && stockMap[item.sku] <= 0;
-  const availableItems = cart.filter((item) => !isOutOfStock(item));
+  const isDiscontinued = (item) => stockChecked && stockMap[item.sku] === undefined;
+  const isUnavailable = (item) => isOutOfStock(item) || isDiscontinued(item);
+  const availableItems = cart.filter((item) => !isUnavailable(item));
   const hasOutOfStockItems = availableItems.length !== cart.length;
   const subtotal = availableItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const deliveryFee = subtotal > FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
@@ -230,7 +234,8 @@ export default function CartPage() {
                   background: C.card, borderRadius: 16,
                   boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
                   marginBottom: '1rem',
-                  opacity: isOutOfStock(item) ? 0.6 : 1,
+                  opacity: isUnavailable(item) ? 0.6 : 1,
+                  filter: isDiscontinued(item) ? 'blur(0.4px) grayscale(0.3)' : 'none',
                 }}
               >
                 {/* Product Image */}
@@ -301,6 +306,15 @@ export default function CartPage() {
                             Out of Stock
                           </span>
                         )}
+                        {isDiscontinued(item) && (
+                          <span style={{
+                            fontSize: '0.75rem', fontWeight: 600, color: C.muted,
+                            background: '#f5f5f7', padding: '0.1875rem 0.625rem',
+                            borderRadius: 980,
+                          }}>
+                            Sorry, we no longer sell this product
+                          </span>
+                        )}
                       </div>
                     </div>
                     <p style={{
@@ -332,15 +346,15 @@ export default function CartPage() {
                     }}>
                       <button
                         onClick={() => updateQuantity(index, -1)}
-                        disabled={item.quantity <= 1 || isOutOfStock(item)}
+                        disabled={item.quantity <= 1 || isUnavailable(item)}
                         style={{
                           width: 36, height: 36, display: 'flex',
                           alignItems: 'center', justifyContent: 'center',
                           background: 'transparent', border: 'none',
-                          cursor: (item.quantity <= 1 || isOutOfStock(item)) ? 'not-allowed' : 'pointer',
-                          color: (item.quantity <= 1 || isOutOfStock(item)) ? C.border : C.text,
+                          cursor: (item.quantity <= 1 || isUnavailable(item)) ? 'not-allowed' : 'pointer',
+                          color: (item.quantity <= 1 || isUnavailable(item)) ? C.border : C.text,
                           transition: 'all 0.2s ease',
-                          opacity: (item.quantity <= 1 || isOutOfStock(item)) ? 0.4 : 1,
+                          opacity: (item.quantity <= 1 || isUnavailable(item)) ? 0.4 : 1,
                         }}
                         aria-label="Decrease quantity"
                       >
@@ -355,14 +369,14 @@ export default function CartPage() {
                       </span>
                       <button
                         onClick={() => updateQuantity(index, 1)}
-                        disabled={isOutOfStock(item)}
+                        disabled={isUnavailable(item)}
                         style={{
                           width: 36, height: 36, display: 'flex',
                           alignItems: 'center', justifyContent: 'center',
                           background: 'transparent', border: 'none',
-                          cursor: isOutOfStock(item) ? 'not-allowed' : 'pointer',
-                          color: isOutOfStock(item) ? C.border : C.text,
-                          opacity: isOutOfStock(item) ? 0.4 : 1,
+                          cursor: isUnavailable(item) ? 'not-allowed' : 'pointer',
+                          color: isUnavailable(item) ? C.border : C.text,
+                          opacity: isUnavailable(item) ? 0.4 : 1,
                           transition: 'all 0.2s ease',
                         }}
                         aria-label="Increase quantity"
@@ -494,7 +508,7 @@ export default function CartPage() {
                   fontSize: '0.8125rem', color: C.red, margin: '0 0 0.875rem',
                   textAlign: 'center', lineHeight: 1.5,
                 }}>
-                  Remove the out-of-stock item{cart.length - availableItems.length > 1 ? 's' : ''} above to check out.
+                  Remove the unavailable item{cart.length - availableItems.length > 1 ? 's' : ''} above to check out.
                 </p>
               )}
 

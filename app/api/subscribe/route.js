@@ -5,6 +5,11 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Always point marketing emails at the real store, even when triggered from a local
+// dev server - NEXTAUTH_URL is correctly environment-specific (needed for auth
+// callbacks), but a "create your account" link should never say localhost.
+const SITE_URL = 'https://techmart-zeta.vercel.app';
+
 export async function POST(req) {
   try {
     const { email } = await req.json();
@@ -43,7 +48,7 @@ export async function POST(req) {
               Create your account today and enjoy exclusive deals, fast delivery, and premium customer support.
             </p>
             <div style="margin: 30px 0;">
-              <a href="${process.env.NEXTAUTH_URL}/auth/register" style="background: #0071e3; color: white; padding: 14px 28px; border-radius: 980px; text-decoration: none; font-size: 16px; font-weight: 500;">
+              <a href="${SITE_URL}/auth/register" style="background: #0071e3; color: white; padding: 14px 28px; border-radius: 980px; text-decoration: none; font-size: 16px; font-weight: 500;">
                 Create Your Account
               </a>
             </div>

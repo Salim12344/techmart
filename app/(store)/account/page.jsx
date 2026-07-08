@@ -170,15 +170,24 @@ export default function AccountPage() {
 
   const user = profile || session?.user;
   const initial = user?.name?.[0]?.toUpperCase() || 'U';
+  // Treat accounts created in the last few minutes as a fresh signup rather than a
+  // returning visit - there's no explicit "first login" flag, so recency is the signal.
+  const isNewAccount = profile?.createdAt && (Date.now() - new Date(profile.createdAt).getTime()) < 5 * 60 * 1000;
+  const firstName = user?.name?.split(' ')[0];
 
   return (
     <div className="account-page" style={{ maxWidth: 800, margin: '0 auto', padding: '2rem 1.5rem 4rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.375rem' }}>
         <User size={24} style={{ color: C.blue }} />
         <h1 style={{ fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.03em', color: C.text, margin: 0 }}>
           Account
         </h1>
       </div>
+      {firstName && (
+        <p style={{ fontSize: '1.0625rem', color: C.muted, margin: '0 0 2rem', paddingLeft: '2.25rem' }}>
+          {isNewAccount ? `Welcome, ${firstName}!` : `Welcome back, ${firstName}!`}
+        </p>
+      )}
 
       {/* Profile Card */}
       <div style={{

@@ -7,6 +7,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { getGuestWishlist, clearGuestWishlist } from '@/lib/guestWishlist';
 import { getCart, getGuestCart, clearGuestCart } from '@/lib/cart';
 import { useConfirm } from '@/app/components/ConfirmDialog';
+import { useToast } from '@/app/components/Toast';
 import {
   ShoppingBag,
   Heart,
@@ -38,6 +39,7 @@ const FONT_FAMILY = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pr
 export default function Navbar() {
   const { data: session, status } = useSession();
   const confirmAction = useConfirm();
+  const { showToast } = useToast();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -96,6 +98,19 @@ export default function Navbar() {
     setMobileOpen(false);
     setUserDropdownOpen(false);
   }, [pathname]);
+
+  // Show a one-time welcome toast right after sign-in - flag is set by the login
+  // page (as 'new' or 'back') and consumed here so it fires exactly once per login.
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.name) {
+      const welcome = sessionStorage.getItem('techmart-welcome');
+      if (welcome) {
+        sessionStorage.removeItem('techmart-welcome');
+        const firstName = session.user.name.split(' ')[0];
+        showToast(welcome === 'new' ? `Welcome, ${firstName}!` : `Welcome back, ${firstName}!`, 'success');
+      }
+    }
+  }, [status, session]);
 
   // Merge guest wishlist into account once user is authenticated
   useEffect(() => {

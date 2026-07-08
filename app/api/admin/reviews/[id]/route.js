@@ -70,6 +70,9 @@ export async function PATCH(req, { params }) {
     if (!review) {
       return Response.json({ error: 'Review not found' }, { status: 404 });
     }
+    if (review.isApproved && !isApproved) {
+      return Response.json({ error: 'An approved review cannot be unapproved - delete it instead' }, { status: 400 });
+    }
 
     review.isApproved = !!isApproved;
     await review.save();
