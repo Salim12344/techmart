@@ -122,7 +122,7 @@ export default function OrderDetailPage({ params }) {
       const data = await res.json();
       if (!res.ok) { showToast(data.error || 'Unable to cancel order right now'); return; }
       setOrder(data.order);
-      showToast('Order cancelled successfully. Refund is being processed.', 'success');
+      showToast('Order cancelled successfully. A refund has been processed.', 'success');
     } catch (err) {
       showToast('Unable to cancel order right now');
     } finally {
@@ -317,7 +317,7 @@ export default function OrderDetailPage({ params }) {
             background: C.redBg, borderRadius: '12px', padding: '0.75rem 1rem',
             marginBottom: '1rem', textAlign: 'center', fontSize: '0.875rem', color: C.red, fontWeight: 500,
           }}>
-            This order has been cancelled. A refund is being processed.
+            This order has been cancelled. A refund has been processed.
           </div>
         )}
 
