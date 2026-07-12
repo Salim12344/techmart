@@ -633,11 +633,11 @@ export default function WishlistPage() {
               </div>
             )}
 
-            {/* Storage Selector */}
-            {quickAddProduct.storageOptions?.length > 0 && (
+            {/* Storage Selector - only shown as a chooser when there's an actual choice to make */}
+            {quickAddProduct.storageOptions?.length > 1 && (
               <div style={{ marginBottom: '1.25rem' }}>
                 <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: C.text, marginBottom: '0.625rem' }}>
-                  Storage
+                  {quickAddProduct.category === 'Apple Watch' ? 'Connectivity' : 'Storage'}
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   {quickAddProduct.storageOptions.map((opt) => (

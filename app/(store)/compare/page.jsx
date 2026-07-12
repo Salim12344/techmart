@@ -260,7 +260,7 @@ export default function ComparePage() {
     });
 
     rows.push({
-      label: 'Storage Options',
+      label: products[0]?.category === 'Apple Watch' ? 'Connectivity Options' : 'Storage Options',
       values: products.map((p) =>
         p.storageOptions && p.storageOptions.length > 0
           ? p.storageOptions.join(', ')

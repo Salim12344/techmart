@@ -620,7 +620,7 @@ export default function AdminProductsPage() {
 
                 {/* Storage */}
                 <div style={sectionStyle}>
-                  <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: C.text, margin: '0 0 0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Storage Options</p>
+                  <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: C.text, margin: '0 0 0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{form.category === 'Apple Watch' ? 'Connectivity Options' : 'Storage Options'}</p>
                   {form.storageOptions.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
                       {form.storageOptions.map((s, i) => (
@@ -632,7 +632,7 @@ export default function AdminProductsPage() {
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <input style={{ ...smInputStyle, flex: 1 }} type="text" placeholder="e.g., 128GB, 256GB" value={newStorage} onChange={e => setNewStorage(e.target.value)} />
+                    <input style={{ ...smInputStyle, flex: 1 }} type="text" placeholder={form.category === 'Apple Watch' ? 'e.g., GPS, GPS + Cellular' : 'e.g., 128GB, 256GB'} value={newStorage} onChange={e => setNewStorage(e.target.value)} />
                     <button type="button" onClick={addStorage} style={{ background: C.blue, color: '#fff', border: 'none', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.8125rem', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>Add</button>
                   </div>
                 </div>
@@ -643,14 +643,14 @@ export default function AdminProductsPage() {
                     <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: C.text, margin: '0 0 0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Variant Pricing & Stock</p>
                     <p style={{ fontSize: '0.8125rem', color: C.muted, margin: '0 0 0.75rem' }}>
                       {form.storageOptions.length > 0
-                        ? 'Fill in price and stock for each color × storage combination. SKUs are auto-generated.'
-                        : 'Fill in price and stock for each color. SKUs are auto-generated. Add a storage option above if this product comes in different sizes/capacities.'}
+                        ? `Fill in price and stock for each color × ${form.category === 'Apple Watch' ? 'connectivity' : 'storage'} combination. SKUs are auto-generated.`
+                        : `Fill in price and stock for each color. SKUs are auto-generated. Add a ${form.category === 'Apple Watch' ? 'connectivity' : 'storage'} option above if this product comes in different ${form.category === 'Apple Watch' ? 'connectivity types' : 'sizes/capacities'}.`}
                     </p>
                     <div style={{ overflowX: 'auto' }}>
                       <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
                         <thead>
                           <tr>
-                            {(form.storageOptions.length > 0 ? ['Color', 'Storage', 'SKU', 'Price (₦)', 'Stock'] : ['Color', 'SKU', 'Price (₦)', 'Stock']).map(h => (
+                            {(form.storageOptions.length > 0 ? ['Color', form.category === 'Apple Watch' ? 'Connectivity' : 'Storage', 'SKU', 'Price (₦)', 'Stock'] : ['Color', 'SKU', 'Price (₦)', 'Stock']).map(h => (
                               <th key={h} style={{ padding: '0.5rem 0.75rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: `1px solid ${C.border}` }}>{h}</th>
                             ))}
                           </tr>
@@ -871,7 +871,7 @@ export default function AdminProductsPage() {
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                   <thead>
                                     <tr style={{ background: C.card }}>
-                                      {['Color', 'Storage', 'SKU', 'Stock', 'Status'].map(h => (
+                                      {['Color', product.category === 'Apple Watch' ? 'Connectivity' : 'Storage', 'SKU', 'Stock', 'Status'].map(h => (
                                         <th key={h} style={{ padding: '0.5rem 0.875rem', textAlign: 'left', fontSize: '0.6875rem', fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: `1px solid ${C.border}` }}>{h}</th>
                                       ))}
                                     </tr>

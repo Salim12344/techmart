@@ -717,6 +717,14 @@ export default function ProductDetailPage({ params }) {
                 <Package size={100} color="#d2d2d7" />
               )}
             </div>
+
+            {/* Preload every color's image up front so switching colors is instant
+                instead of showing a loading flash the first time each one is picked */}
+            <div style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0, pointerEvents: 'none' }} aria-hidden="true">
+              {product.colors?.filter((c) => c.image && c.image !== displayImage).map((c) => (
+                <Image key={c.image} src={c.image} alt="" width={1} height={1} priority />
+              ))}
+            </div>
           </div>
 
           {/* Right Column - Details */}
@@ -847,9 +855,10 @@ export default function ProductDetailPage({ params }) {
               }}
             />
 
-            {/* Storage Selector */}
-            {product.storageOptions?.length > 0 && (
+            {/* Storage Selector - only shown as a chooser when there's an actual choice to make */}
+            {product.storageOptions?.length > 1 && (
               <div style={{ marginBottom: '1rem' }}>
+                {product.category !== 'Apple Watch' && (
                 <div
                   style={{
                     fontSize: '0.875rem',
@@ -860,6 +869,7 @@ export default function ProductDetailPage({ params }) {
                 >
                   Storage
                 </div>
+                )}
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   {product.storageOptions.map((opt) => (
                     <button
