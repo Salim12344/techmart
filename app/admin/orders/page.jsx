@@ -107,6 +107,9 @@ function AdminOrdersContent() {
 
   const nextStatus = (current) => {
     const idx = STATUS_FLOW.indexOf(current);
+    // indexOf returns -1 for a status outside the normal flow (cancelled, refunded) -
+    // treat that as "no next step" instead of wrapping around to STATUS_FLOW[0].
+    if (idx === -1) return null;
     return idx < STATUS_FLOW.length - 1 ? STATUS_FLOW[idx + 1] : null;
   };
 
@@ -216,8 +219,12 @@ function AdminOrdersContent() {
       )}
 
       {!nextStatus(order.status) && (
-        <div style={{ textAlign: 'center', padding: '0.75rem', background: C.greenBg, borderRadius: '12px', fontSize: '0.875rem', color: C.green, fontWeight: 500 }}>
-          ✓ Order completed
+        <div style={{
+          textAlign: 'center', padding: '0.75rem', borderRadius: '12px', fontSize: '0.875rem', fontWeight: 500,
+          background: order.status === 'delivered' ? C.greenBg : C.redBg,
+          color: order.status === 'delivered' ? C.green : C.red,
+        }}>
+          {order.status === 'delivered' ? '✓ Order completed' : `This order was ${order.status} - no further action available`}
         </div>
       )}
     </div>
@@ -247,7 +254,7 @@ function AdminOrdersContent() {
         {/* Status tabs */}
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           {['all', 'pending', 'confirmed', 'shipped', 'delivered', 'cancelled'].map(s => (
-            <button key={s} onClick={() => setFilterStatus(s)}
+            <button key={s} onClick={() => { setFilterStatus(s); setSelectedOrder(null); }}
               style={{ padding: '0.375rem 0.875rem', borderRadius: '980px', fontSize: '0.8125rem', fontWeight: 500, border: `1px solid ${filterStatus === s ? C.blue : C.border}`, background: filterStatus === s ? C.blue : C.card, color: filterStatus === s ? '#fff' : C.text, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
               {s === 'all' ? `All (${orders.length})` : `${s.charAt(0).toUpperCase() + s.slice(1)} (${orders.filter(o => o.status === s).length})`}
             </button>
