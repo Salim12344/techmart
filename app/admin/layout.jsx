@@ -14,7 +14,19 @@ function AdminSidebar({ mobileOpen, setMobileOpen }) {
   const { data: session } = useSession();
   const confirmAction = useConfirm();
   const [collapsed, setCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [badges, setBadges] = useState({ Orders: 0, Disputes: 0, Support: 0 });
+
+  // The desktop "collapse to icons" toggle has no meaning on the mobile
+  // drawer - it should always show full labels and the sign-out button there.
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    setIsMobile(mq.matches);
+    const onChange = (e) => setIsMobile(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  const effectiveCollapsed = collapsed && !isMobile;
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -109,7 +121,7 @@ function AdminSidebar({ mobileOpen, setMobileOpen }) {
     <aside
       className="admin-sidebar"
       style={{
-        width: collapsed ? '64px' : '240px',
+        width: effectiveCollapsed ? '64px' : '240px',
         minHeight: '100vh',
         background: 'rgba(255,255,255,0.85)',
         backdropFilter: 'saturate(180%) blur(20px)',
@@ -132,10 +144,10 @@ function AdminSidebar({ mobileOpen, setMobileOpen }) {
         borderBottom: '1px solid #e8e8ed',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: collapsed ? 'center' : 'space-between',
+        justifyContent: effectiveCollapsed ? 'center' : 'space-between',
         gap: '0.5rem',
       }}>
-        {!collapsed && (
+        {!effectiveCollapsed && (
           <Link href="/admin" style={{ textDecoration: 'none' }}>
             <span style={{
               fontSize: '1.125rem',
@@ -158,6 +170,7 @@ function AdminSidebar({ mobileOpen, setMobileOpen }) {
           </Link>
         )}
         <button
+          className="admin-sidebar-collapse-btn"
           onClick={() => setCollapsed(!collapsed)}
           style={{
             background: '#f5f5f7',
@@ -174,7 +187,7 @@ function AdminSidebar({ mobileOpen, setMobileOpen }) {
             flexShrink: 0,
           }}
         >
-          {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          {effectiveCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
       </div>
 
@@ -197,15 +210,15 @@ function AdminSidebar({ mobileOpen, setMobileOpen }) {
               fontWeight: isActive(item) ? 600 : 400,
               fontSize: '0.9375rem',
               transition: 'all 0.15s ease',
-              justifyContent: collapsed ? 'center' : 'flex-start',
+              justifyContent: effectiveCollapsed ? 'center' : 'flex-start',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
             }}
-            title={collapsed ? item.label : ''}
+            title={effectiveCollapsed ? item.label : ''}
           >
             <span style={{ fontSize: '1rem', flexShrink: 0, position: 'relative' }}>
               {item.icon}
-              {badges[item.label] > 0 && collapsed && (
+              {badges[item.label] > 0 && effectiveCollapsed && (
                 <span
                   style={{
                     position: 'absolute',
@@ -230,7 +243,7 @@ function AdminSidebar({ mobileOpen, setMobileOpen }) {
                 </span>
               )}
             </span>
-            {!collapsed && (
+            {!effectiveCollapsed && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
                 {item.label}
                 {badges[item.label] > 0 && (
@@ -261,8 +274,8 @@ function AdminSidebar({ mobileOpen, setMobileOpen }) {
       </nav>
 
       {/* User info */}
-      {!collapsed && session?.user && (
-        <div style={{
+      {!effectiveCollapsed && session?.user && (
+        <div className="admin-sidebar-user-block" style={{
           padding: '1rem',
           borderTop: '1px solid #e8e8ed',
         }}>
@@ -442,6 +455,18 @@ function AdminLayoutInner({ children }) {
           }
           .admin-main {
             padding: 0 1rem 1rem !important;
+          }
+          .admin-sidebar-collapse-btn {
+            display: none !important;
+          }
+          .admin-sidebar nav {
+            padding: 0.5rem !important;
+          }
+          .admin-sidebar nav a {
+            padding: 0.5rem 0.75rem !important;
+          }
+          .admin-sidebar-user-block {
+            padding: 0.75rem 1rem !important;
           }
         }
       `}</style>
