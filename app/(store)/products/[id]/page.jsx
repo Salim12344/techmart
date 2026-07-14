@@ -12,7 +12,7 @@ import { getCart, saveCart } from '@/lib/cart';
 import { formatPrice } from '@/lib/formatPrice';
 import {
   Star, Heart, ShoppingBag, Plus, Minus,
-  ChevronRight, Shield, Truck, Package, Send, ArrowLeft, ThumbsUp,
+  ChevronRight, ChevronLeft, Shield, Truck, Package, Send, ArrowLeft, ThumbsUp,
 } from 'lucide-react';
 
 const C = {
@@ -218,6 +218,7 @@ export default function ProductDetailPage({ params }) {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [hoveredAddCart, setHoveredAddCart] = useState(false);
   const [hoveredWishlist, setHoveredWishlist] = useState(false);
   const [cartItems, setCartItems] = useState([]);
@@ -313,6 +314,11 @@ export default function ProductDetailPage({ params }) {
   useEffect(() => {
     setQuantity(1);
   }, [selectedColor, selectedStorage]);
+
+  useEffect(() => {
+    setSelectedImageIndex(0);
+    setImageLoaded(false);
+  }, [selectedColor]);
 
   // Track live cart contents so the quantity stepper stays in sync with the actual bag
   useEffect(() => {
@@ -580,13 +586,15 @@ export default function ProductDetailPage({ params }) {
 
   const colorObj = product.colors?.find((c) => c.name === selectedColor);
 
-  const displayImage = (() => {
-    if (selectedColor) {
-      const colorWithImage = product.colors?.find(c => c.name === selectedColor);
-      if (colorWithImage?.image) return colorWithImage.image;
+  const displayImages = (() => {
+    if (colorObj) {
+      if (colorObj.images?.length) return colorObj.images;
+      if (colorObj.image) return [colorObj.image];
     }
-    return product.image;
+    return product.image ? [product.image] : [];
   })();
+
+  const displayImage = displayImages[selectedImageIndex] || displayImages[0];
 
   return (
     <div style={{ background: C.bg, minHeight: '100vh' }}>
@@ -716,14 +724,85 @@ export default function ProductDetailPage({ params }) {
               ) : (
                 <Package size={100} color="#d2d2d7" />
               )}
+
+              {displayImages.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    disabled={selectedImageIndex === 0}
+                    onClick={() => {
+                      setSelectedImageIndex((i) => Math.max(i - 1, 0));
+                      setImageLoaded(false);
+                    }}
+                    aria-label="Previous image"
+                    style={{
+                      position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)',
+                      width: '36px', height: '36px', borderRadius: '50%', border: 'none',
+                      background: 'rgba(255,255,255,0.9)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: selectedImageIndex === 0 ? 'default' : 'pointer',
+                      color: selectedImageIndex === 0 ? '#c7c7cc' : C.text,
+                      opacity: selectedImageIndex === 0 ? 0.5 : 1,
+                    }}
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={selectedImageIndex === displayImages.length - 1}
+                    onClick={() => {
+                      setSelectedImageIndex((i) => Math.min(i + 1, displayImages.length - 1));
+                      setImageLoaded(false);
+                    }}
+                    aria-label="Next image"
+                    style={{
+                      position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)',
+                      width: '36px', height: '36px', borderRadius: '50%', border: 'none',
+                      background: 'rgba(255,255,255,0.9)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: selectedImageIndex === displayImages.length - 1 ? 'default' : 'pointer',
+                      color: selectedImageIndex === displayImages.length - 1 ? '#c7c7cc' : C.text,
+                      opacity: selectedImageIndex === displayImages.length - 1 ? 0.5 : 1,
+                    }}
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </>
+              )}
             </div>
 
-            {/* Preload every color's image up front so switching colors is instant
+            {/* Dot pagination for multiple images on the selected color, Apple-style */}
+            {displayImages.length > 1 && (
+              <div style={{
+                display: 'flex', justifyContent: 'center', alignItems: 'center',
+                gap: '0.5rem', padding: '0 0 1.25rem',
+              }}>
+                {displayImages.map((img, i) => (
+                  <button
+                    key={img}
+                    type="button"
+                    onClick={() => { setSelectedImageIndex(i); setImageLoaded(false); }}
+                    aria-label={`Show image ${i + 1} of ${displayImages.length}`}
+                    style={{
+                      width: i === selectedImageIndex ? '8px' : '7px',
+                      height: i === selectedImageIndex ? '8px' : '7px',
+                      borderRadius: '50%', border: 'none', padding: 0, cursor: 'pointer',
+                      background: i === selectedImageIndex ? C.blue : C.inputBorder,
+                      transition: 'background 0.2s, width 0.2s, height 0.2s',
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Preload every image up front so switching colors/photos is instant
                 instead of showing a loading flash the first time each one is picked */}
             <div style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0, pointerEvents: 'none' }} aria-hidden="true">
-              {product.colors?.filter((c) => c.image && c.image !== displayImage).map((c) => (
-                <Image key={c.image} src={c.image} alt="" width={1} height={1} priority />
-              ))}
+              {product.colors?.flatMap((c) => c.images?.length ? c.images : (c.image ? [c.image] : []))
+                .filter((img) => img && img !== displayImage)
+                .map((img) => (
+                  <Image key={img} src={img} alt="" width={1} height={1} priority />
+                ))}
             </div>
           </div>
 
@@ -1400,7 +1479,9 @@ export default function ProductDetailPage({ params }) {
                 boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
               }}
             >
-              <Star size={40} color="#d2d2d7" style={{ marginBottom: '1rem' }} />
+              <div style={{ marginBottom: '1rem' }}>
+                <StarRating rating={0} size={28} />
+              </div>
               <p
                 style={{
                   color: C.muted,

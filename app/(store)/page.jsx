@@ -693,7 +693,7 @@ export default function HomePage() {
           <StatItem value={siteStats?.totalProducts || 0} suffix="" label="Products" />
           <StatItem value={siteStats?.totalCustomers || 0} suffix="" label="Registered Customers" />
           <StatItem value={siteStats?.deliveredOrders || 0} suffix="" label="Orders Delivered" />
-          <StatItem value={siteStats?.satisfactionPercent || 0} suffix="%" label={`Satisfaction${siteStats?.totalReviews ? ` (${siteStats.totalReviews} reviews)` : ''}`} />
+          <StatItem value={siteStats?.satisfactionPercent || 0} suffix="%" label={`Satisfaction${siteStats?.totalReviews ? ` (${siteStats.totalReviews} review${siteStats.totalReviews === 1 ? '' : 's'})` : ''}`} />
         </div>
       </section>
 

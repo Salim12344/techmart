@@ -18,6 +18,10 @@ export async function PATCH(req, { params }) {
       return Response.json({ error: 'Discount must be between 1% and 10%' }, { status: 400 });
     }
 
+    if (updates.expiresAt !== undefined && new Date(updates.expiresAt) <= new Date()) {
+      return Response.json({ error: 'Expiry date must be in the future' }, { status: 400 });
+    }
+
     const coupon = await Coupon.findByIdAndUpdate(id, updates, { new: true });
     if (!coupon) {
       return Response.json({ error: 'Coupon not found' }, { status: 404 });

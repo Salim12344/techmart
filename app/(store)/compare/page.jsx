@@ -1,7 +1,7 @@
 // app/(store)/compare/page.jsx
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { Fragment, useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -285,7 +285,7 @@ export default function ComparePage() {
       label: 'Average Rating',
       values: products.map((p) =>
         p.averageRating
-          ? `${p.averageRating.toFixed(1)} / 5 (${p.reviewCount || 0} reviews)`
+          ? `${p.averageRating.toFixed(1)} / 5 (${p.reviewCount || 0} review${p.reviewCount === 1 ? '' : 's'})`
           : 'No ratings yet'
       ),
     });
@@ -496,113 +496,114 @@ export default function ComparePage() {
         </div>
       </div>
 
-      {/* Mobile stacked card view */}
-      <div className="compare-mobile" style={{ display: 'none' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {products.map((product, pIndex) => (
+      {/* Mobile side-by-side grid — same columns-per-product layout as desktop, sized to fit the screen with no horizontal scroll */}
+      <div className="compare-mobile" style={{
+        display: 'none', background: C.card, borderRadius: '18px',
+        border: `1px solid ${C.border}`, overflow: 'hidden', width: '100%', boxSizing: 'border-box',
+      }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: `72px repeat(${products.length}, 1fr)`,
+          width: '100%',
+        }}>
+          {/* Header row: blank label cell + one cell per product */}
+          <div style={{
+            padding: '0.625rem 0.375rem', background: C.bg,
+            borderBottom: `1px solid ${C.border}`,
+          }} />
+          {products.map((product) => (
             <div key={product._id} style={{
-              background: C.card, borderRadius: '18px', border: `1px solid ${C.border}`,
-              overflow: 'hidden',
+              padding: '0.625rem 0.375rem', background: C.bg,
+              borderBottom: `1px solid ${C.border}`, minWidth: 0,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '0.375rem',
             }}>
-              {/* Card header */}
-              <div style={{
-                padding: '1.25rem', background: C.bg,
-                borderBottom: `1px solid ${C.border}`,
-                display: 'flex', alignItems: 'center', gap: '1rem',
-              }}>
-                {/* Product image */}
-                {product.image && (
-                  <div style={{
-                    width: '80px', height: '80px', flexShrink: 0,
-                    borderRadius: '14px', overflow: 'hidden',
-                    border: `1px solid ${C.border}`, background: C.card,
-                  }}>
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      width={80}
-                      height={80}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                  </div>
-                )}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{
-                    fontWeight: 700, fontSize: '1rem', color: C.text,
-                    margin: '0 0 0.25rem', letterSpacing: '-0.01em',
-                  }}>
-                    {product.name}
-                  </p>
-                  <p style={{
-                    fontSize: '1rem', fontWeight: 600, color: C.blue,
-                    margin: '0 0 0.625rem',
-                  }}>
-                    From ₦{getStartingPrice(product).toLocaleString()}
-                  </p>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <button
-                      onClick={() => addToCart(product)}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
-                        background: C.blue, color: '#fff', border: 'none',
-                        borderRadius: '980px', padding: '0.5rem 1rem',
-                        fontSize: '0.8125rem', fontWeight: 500, cursor: 'pointer',
-                        fontFamily: 'inherit',
-                      }}
-                    >
-                      <ShoppingBag size={14} /> Add to Cart
-                    </button>
-                    <button
-                      onClick={() => removeProduct(product._id)}
-                      style={{
-                        background: C.redBg, border: 'none', borderRadius: '50%',
-                        width: '28px', height: '28px', display: 'flex',
-                        alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', color: C.red, flexShrink: 0,
-                      }}
-                      title="Remove from comparison"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
+              <button
+                onClick={() => removeProduct(product._id)}
+                style={{
+                  background: C.redBg, border: 'none', borderRadius: '50%',
+                  width: '20px', height: '20px', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', color: C.red, flexShrink: 0, alignSelf: 'flex-end',
+                }}
+                title="Remove from comparison"
+              >
+                <X size={11} />
+              </button>
+              {product.image && (
+                <div style={{
+                  width: '44px', height: '44px', borderRadius: '10px', overflow: 'hidden',
+                  border: `1px solid ${C.border}`, background: C.card, flexShrink: 0,
+                }}>
+                  <Image
+                    src={product.image}
+                    alt={product.name}
+                    width={44}
+                    height={44}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
                 </div>
-              </div>
+              )}
+              <p style={{
+                fontWeight: 700, fontSize: '0.6875rem', color: C.text,
+                margin: 0, lineHeight: 1.25, wordBreak: 'break-word',
+              }}>
+                {product.name}
+              </p>
+              <p style={{ fontSize: '0.6875rem', fontWeight: 600, color: C.blue, margin: 0 }}>
+                {formatPrice(getStartingPrice(product))}
+              </p>
+              <button
+                onClick={() => addToCart(product)}
+                style={{
+                  background: C.blue, color: '#fff', border: 'none',
+                  borderRadius: '50%', width: '24px', height: '24px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', flexShrink: 0,
+                }}
+                title="Add to cart"
+              >
+                <ShoppingBag size={12} />
+              </button>
+            </div>
+          ))}
 
-              {/* Spec rows */}
-              <div style={{ padding: '0.5rem 0' }}>
-                {rows.map((row, i) => {
+          {/* Spec rows */}
+          {rows.map((row, i) => {
+            const differs = valuesDiffer(row.values);
+            return (
+              <Fragment key={i}>
+                <div style={{
+                  padding: '0.5rem 0.375rem',
+                  fontSize: '0.625rem', fontWeight: 600, color: C.muted,
+                  borderBottom: `1px solid ${C.bg}`,
+                  background: differs ? DIFF_BG : C.card,
+                  lineHeight: 1.2, wordBreak: 'break-word',
+                }}>
+                  {row.label}
+                </div>
+                {row.values.map((value, j) => {
                   let valueColor = C.text;
-                  const value = row.values[pIndex];
-                  if (row.label === 'Stock Status') {
-                    if (typeof value === 'string' && value.startsWith('Out')) valueColor = C.red;
-                    else if (typeof value === 'string' && value.startsWith('Low')) valueColor = C.orange;
-                    else if (typeof value === 'string' && value.startsWith('In')) valueColor = C.green;
+                  if (row.label === 'Stock Status' && typeof value === 'string') {
+                    if (value.startsWith('Out')) valueColor = C.red;
+                    else if (value.startsWith('Low')) valueColor = C.orange;
+                    else if (value.startsWith('In')) valueColor = C.green;
                   }
                   return (
-                    <div key={i} style={{
-                      display: 'flex', justifyContent: 'space-between',
-                      alignItems: 'center', padding: '0.625rem 1.25rem',
-                      borderBottom: i < rows.length - 1 ? `1px solid ${C.bg}` : 'none',
+                    <div key={`${i}-${j}`} style={{
+                      padding: '0.5rem 0.375rem',
+                      fontSize: '0.6875rem', color: valueColor, textAlign: 'center',
+                      borderBottom: `1px solid ${C.bg}`,
+                      background: differs ? DIFF_BG : C.card,
+                      fontWeight: row.label === 'Starting Price' ? 600 : 400,
+                      lineHeight: 1.3, wordBreak: 'break-word', minWidth: 0,
                     }}>
-                      <span style={{
-                        fontSize: '0.75rem', fontWeight: 600, color: C.muted,
-                        textTransform: 'uppercase', letterSpacing: '0.03em',
-                      }}>
-                        {row.label}
-                      </span>
-                      <span style={{
-                        fontSize: '0.875rem', color: valueColor,
-                        fontWeight: row.label === 'Starting Price' ? 600 : 400,
-                        textAlign: 'right', maxWidth: '55%',
-                      }}>
-                        {value}
-                      </span>
+                      {value}
                     </div>
                   );
                 })}
-              </div>
-            </div>
-          ))}
+              </Fragment>
+            );
+          })}
         </div>
       </div>
 

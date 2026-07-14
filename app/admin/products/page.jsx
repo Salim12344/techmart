@@ -145,7 +145,7 @@ export default function AdminProductsPage() {
     warranty: '', tags: [], colors: [], storageOptions: [], variants: [], specs: {},
   });
   const [expandedProduct, setExpandedProduct] = useState(null);
-  const [newColor, setNewColor] = useState({ name: '', hex: '#000000', image: '' });
+  const [newColor, setNewColor] = useState({ name: '', hex: '#000000', images: [] });
   const [colorImageUploading, setColorImageUploading] = useState(false);
   const [newStorage, setNewStorage] = useState('');
   // Spec fields the admin has removed for this specific product - a category's spec
@@ -241,25 +241,68 @@ export default function AdminProductsPage() {
   const addColor = () => {
     if (!newColor.name.trim()) { showToast('Color name is required'); return; }
     if (form.colors.some(c => c.name.toLowerCase() === newColor.name.toLowerCase())) { showToast('Color already exists'); return; }
-    if (!newColor.image) { showToast('Please upload an image for this color'); return; }
-    const c = { name: newColor.name, hex: newColor.hex, image: newColor.image };
+    if (newColor.images.length === 0) { showToast('Please upload at least one image for this color'); return; }
+    const c = { name: newColor.name, hex: newColor.hex, image: newColor.images[0], images: newColor.images };
     const storageList = form.storageOptions.length > 0 ? form.storageOptions : [''];
     const newVariants = storageList.map(s => ({ color: c.name, storage: s, sku: generateSKU(form.name, c.name, s), price: 0, stock: 0 }));
     setForm(prev => ({ ...prev, colors: [...prev.colors, c], variants: [...prev.variants, ...newVariants] }));
-    setNewColor({ name: '', hex: '#000000', image: '' });
+    setNewColor({ name: '', hex: '#000000', images: [] });
   };
 
   const handleColorImageUpload = async (e) => {
-    const file = e.target.files?.[0]; if (!file) return;
+    const files = Array.from(e.target.files || []); if (files.length === 0) return;
     setColorImageUploading(true);
     try {
-      const fd = new FormData(); fd.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Upload failed'); return; }
-      setNewColor(prev => ({ ...prev, image: data.url }));
+      const urls = [];
+      for (const file of files) {
+        const fd = new FormData(); fd.append('file', file);
+        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) { showToast(data.error || 'Upload failed'); continue; }
+        urls.push(data.url);
+      }
+      setNewColor(prev => ({ ...prev, images: [...prev.images, ...urls] }));
+    } catch (err) { showToast(err.message); }
+    finally { setColorImageUploading(false); e.target.value = ''; }
+  };
+
+  const removeNewColorImage = (i) => {
+    setNewColor(prev => ({ ...prev, images: prev.images.filter((_, idx) => idx !== i) }));
+  };
+
+  const addImagesToColor = async (colorIndex, files) => {
+    const list = Array.from(files || []); if (list.length === 0) return;
+    setColorImageUploading(true);
+    try {
+      const urls = [];
+      for (const file of list) {
+        const fd = new FormData(); fd.append('file', file);
+        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) { showToast(data.error || 'Upload failed'); continue; }
+        urls.push(data.url);
+      }
+      setForm(prev => ({
+        ...prev,
+        colors: prev.colors.map((c, idx) => {
+          if (idx !== colorIndex) return c;
+          const images = [...(c.images?.length ? c.images : c.image ? [c.image] : []), ...urls];
+          return { ...c, images, image: images[0] };
+        }),
+      }));
     } catch (err) { showToast(err.message); }
     finally { setColorImageUploading(false); }
+  };
+
+  const removeColorImage = (colorIndex, imgIndex) => {
+    setForm(prev => ({
+      ...prev,
+      colors: prev.colors.map((c, idx) => {
+        if (idx !== colorIndex) return c;
+        const images = (c.images?.length ? c.images : c.image ? [c.image] : []).filter((_, i) => i !== imgIndex);
+        return { ...c, images, image: images[0] || '' };
+      }),
+    }));
   };
 
   const removeColor = async (i) => {
@@ -320,7 +363,7 @@ export default function AdminProductsPage() {
     if (!form.description.trim()) { showToast('Product description is required'); return; }
     if (!form.warranty.trim()) { showToast('Warranty information is required'); return; }
     if (form.colors.length === 0) { showToast('Add at least one color'); return; }
-    const missingColorImages = form.colors.filter(c => !c.image);
+    const missingColorImages = form.colors.filter(c => !(c.images?.length > 0) && !c.image);
     if (missingColorImages.length > 0) { showToast(`Please upload an image for: ${missingColorImages.map(c => c.name).join(', ')}`); return; }
 
     const storageList = form.storageOptions.length > 0 ? form.storageOptions : [''];
@@ -360,7 +403,7 @@ export default function AdminProductsPage() {
 
   const resetForm = () => {
     setForm({ name: '', category: '', description: '', image: '', warranty: '', tags: [], colors: [], storageOptions: [], variants: [], specs: {} });
-    setEditingId(null); setNewColor({ name: '', hex: '#000000', image: '' }); setNewStorage(''); setExcludedSpecFields([]);
+    setEditingId(null); setNewColor({ name: '', hex: '#000000', images: [] }); setNewStorage(''); setExcludedSpecFields([]);
   };
 
   const handleEdit = (product) => {
@@ -566,56 +609,68 @@ export default function AdminProductsPage() {
                   <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: C.text, margin: '0 0 0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Colors</p>
                   {form.colors.length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                      {form.colors.map((color, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', background: C.card, borderRadius: '8px', border: `1px solid ${C.border}` }}>
-                          <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: color.hex, flexShrink: 0, border: `1px solid ${C.border}` }} />
-                          <span style={{ flex: 1, fontSize: '0.9375rem', color: C.text }}>{color.name}</span>
-                          <label style={{
-                            width: '36px', height: '36px', borderRadius: '8px',
-                            border: `1px solid ${C.border}`, background: C.bg,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            cursor: 'pointer', flexShrink: 0, overflow: 'hidden',
-                          }} title={color.image ? 'Change image' : 'Upload image'}>
-                            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
-                              const file = e.target.files?.[0]; if (!file) return;
-                              try {
-                                const fd = new FormData(); fd.append('file', file);
-                                const res = await fetch('/api/upload', { method: 'POST', body: fd });
-                                const data = await res.json();
-                                if (!res.ok) { showToast(data.error || 'Upload failed'); return; }
-                                setForm(prev => ({
-                                  ...prev,
-                                  colors: prev.colors.map((c, idx) => idx === i ? { ...c, image: data.url } : c)
-                                }));
-                                showToast('Image uploaded', 'success');
-                              } catch (err) { showToast(err.message); }
-                            }} />
-                            {color.image ? (
-                              <Image src={color.image} alt={color.name} width={36} height={36} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            ) : (
-                              <span style={{ fontSize: '1rem', color: C.blue, fontWeight: 300 }}>+</span>
-                            )}
-                          </label>
-                          <span style={{ fontSize: '0.75rem', color: C.muted, fontFamily: 'monospace' }}>{color.hex}</span>
-                          <button type="button" onClick={() => removeColor(i)} style={{ background: 'none', border: 'none', color: C.red, cursor: 'pointer', fontSize: '0.8125rem', fontFamily: 'inherit' }}>Remove</button>
-                        </div>
-                      ))}
+                      {form.colors.map((color, i) => {
+                        const images = color.images?.length ? color.images : (color.image ? [color.image] : []);
+                        return (
+                          <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.5rem 0.75rem', background: C.card, borderRadius: '8px', border: `1px solid ${C.border}` }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: color.hex, flexShrink: 0, border: `1px solid ${C.border}` }} />
+                              <span style={{ flex: 1, fontSize: '0.9375rem', color: C.text }}>{color.name}</span>
+                              <span style={{ fontSize: '0.75rem', color: C.muted, fontFamily: 'monospace' }}>{color.hex}</span>
+                              <button type="button" onClick={() => removeColor(i)} style={{ background: 'none', border: 'none', color: C.red, cursor: 'pointer', fontSize: '0.8125rem', fontFamily: 'inherit' }}>Remove</button>
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                              {images.map((img, imgIdx) => (
+                                <div key={img} style={{ position: 'relative', width: '44px', height: '44px', borderRadius: '8px', overflow: 'hidden', border: `1px solid ${C.border}`, flexShrink: 0 }}>
+                                  <Image src={img} alt={`${color.name} ${imgIdx + 1}`} width={44} height={44} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  <button type="button" onClick={() => removeColorImage(i, imgIdx)} title="Remove image" style={{
+                                    position: 'absolute', top: '1px', right: '1px', width: '16px', height: '16px',
+                                    borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff',
+                                    fontSize: '0.625rem', lineHeight: 1, cursor: 'pointer', display: 'flex',
+                                    alignItems: 'center', justifyContent: 'center', padding: 0,
+                                  }}>✕</button>
+                                </div>
+                              ))}
+                              <label style={{
+                                width: '44px', height: '44px', borderRadius: '8px',
+                                border: `1.5px dashed ${C.inputBorder}`, background: C.bg,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: colorImageUploading ? 'wait' : 'pointer', flexShrink: 0,
+                              }} title="Add image(s)">
+                                <input type="file" accept="image/*" multiple style={{ display: 'none' }}
+                                  disabled={colorImageUploading}
+                                  onChange={(e) => { addImagesToColor(i, e.target.files); e.target.value = ''; }} />
+                                <span style={{ fontSize: '1.125rem', color: C.blue, fontWeight: 300 }}>+</span>
+                              </label>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <input style={{ ...smInputStyle, flex: 1 }} type="text" placeholder="Color name (e.g., Space Black)" value={newColor.name} onChange={e => setNewColor({ ...newColor, name: e.target.value })} />
-                    <input type="color" value={newColor.hex} onChange={e => setNewColor({ ...newColor, hex: e.target.value })} style={{ width: '44px', height: '38px', borderRadius: '8px', border: `1px solid ${C.border}`, cursor: 'pointer', padding: '2px' }} />
-                    <label style={{ width: '40px', height: '40px', borderRadius: '8px', border: newColor.image ? `1px solid ${C.border}` : `1.5px dashed ${C.red}`, background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: colorImageUploading ? 'wait' : 'pointer', flexShrink: 0, overflow: 'hidden', position: 'relative' }} title="Upload color image (required)">
-                      <input type="file" accept="image/*" onChange={handleColorImageUpload} disabled={colorImageUploading} style={{ display: 'none' }} />
-                      {newColor.image ? (
-                        <Image src={newColor.image} alt="Color" width={40} height={40} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                    <input style={{ ...smInputStyle, flex: 1, minWidth: '160px' }} type="text" placeholder="Color name (e.g., Space Black)" value={newColor.name} onChange={e => setNewColor({ ...newColor, name: e.target.value })} />
+                    <input type="color" value={newColor.hex} onChange={e => setNewColor({ ...newColor, hex: e.target.value })} style={{ width: '44px', height: '38px', borderRadius: '8px', border: `1px solid ${C.border}`, cursor: 'pointer', padding: '2px', flexShrink: 0 }} />
+                    <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      {newColor.images.map((img, i) => (
+                        <div key={img} style={{ position: 'relative', width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', border: `1px solid ${C.border}`, flexShrink: 0 }}>
+                          <Image src={img} alt="Color" width={40} height={40} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <button type="button" onClick={() => removeNewColorImage(i)} title="Remove" style={{
+                            position: 'absolute', top: '1px', right: '1px', width: '16px', height: '16px',
+                            borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff',
+                            fontSize: '0.625rem', lineHeight: 1, cursor: 'pointer', display: 'flex',
+                            alignItems: 'center', justifyContent: 'center', padding: 0,
+                          }}>✕</button>
+                        </div>
+                      ))}
+                      <label style={{ width: '40px', height: '40px', borderRadius: '8px', border: newColor.images.length ? `1px solid ${C.border}` : `1.5px dashed ${C.red}`, background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: colorImageUploading ? 'wait' : 'pointer', flexShrink: 0, overflow: 'hidden', position: 'relative' }} title="Upload color image(s) (at least one required)">
+                        <input type="file" accept="image/*" multiple onChange={handleColorImageUpload} disabled={colorImageUploading} style={{ display: 'none' }} />
                         <span style={{ fontSize: '1.25rem', color: colorImageUploading ? C.muted : C.red, fontWeight: 300, lineHeight: 1 }}>{colorImageUploading ? '...' : '+'}</span>
-                      )}
-                    </label>
+                      </label>
+                    </div>
                     <button type="button" onClick={addColor} style={{ background: C.blue, color: '#fff', border: 'none', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.8125rem', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>Add</button>
                   </div>
-                  <p style={{ fontSize: '0.75rem', color: C.muted, margin: '0.5rem 0 0' }}>An image is required for each color.</p>
+                  <p style={{ fontSize: '0.75rem', color: C.muted, margin: '0.5rem 0 0' }}>At least one image is required for each color — add more for a photo gallery, like Apple's product pages.</p>
                 </div>
 
                 {/* Storage */}

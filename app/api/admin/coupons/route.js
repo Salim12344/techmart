@@ -36,6 +36,10 @@ export async function POST(req) {
       return Response.json({ error: 'Discount must be between 1% and 10%' }, { status: 400 });
     }
 
+    if (new Date(expiresAt) <= new Date()) {
+      return Response.json({ error: 'Expiry date must be in the future' }, { status: 400 });
+    }
+
     const existing = await Coupon.findOne({ code: code.toUpperCase() });
     if (existing) {
       return Response.json({ error: 'Coupon code already exists' }, { status: 400 });

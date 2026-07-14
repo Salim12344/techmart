@@ -425,9 +425,11 @@ function AdminLayoutInner({ children }) {
             top: 0 !important;
             left: 0 !important;
             height: 100vh !important;
+            height: 100dvh !important;
             width: 240px !important;
             transform: translateX(-100%);
             z-index: 100 !important;
+            overflow-y: auto !important;
           }
           .admin-sidebar-backdrop {
             display: block !important;

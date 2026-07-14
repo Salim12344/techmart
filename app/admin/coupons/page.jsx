@@ -59,6 +59,10 @@ export default function AdminCouponsPage() {
       showToast('Discount must be between 1% and 10%', 'error');
       return;
     }
+    if (new Date(form.expiresAt) <= new Date()) {
+      showToast('Expiry date must be in the future', 'error');
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch('/api/admin/coupons', {
@@ -127,11 +131,31 @@ export default function AdminCouponsPage() {
 
   return (
     <div style={{ paddingTop: '2rem' }}>
+      <style>{`
+        .coupon-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .coupon-header-row, .coupon-data-row {
+          display: grid; grid-template-columns: 1fr 80px 120px 100px 80px 80px;
+        }
+        @media (max-width: 768px) {
+          .coupon-form-grid { grid-template-columns: 1fr !important; }
+          .coupon-header-row { display: none !important; }
+          .coupon-data-row {
+            grid-template-columns: 1fr !important;
+            gap: 0.5rem;
+            padding: 1rem !important;
+          }
+          .coupon-data-row .coupon-field { display: flex; justify-content: space-between; align-items: center; }
+          .coupon-data-row .coupon-field-label {
+            font-size: 0.6875rem; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.04em; color: ${C.muted};
+          }
+        }
+      `}</style>
       <button onClick={() => router.push('/admin')} style={{ background: 'none', border: 'none', color: C.blue, cursor: 'pointer', fontSize: '0.9375rem', fontFamily: 'inherit', padding: 0, display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
         <ArrowLeft size={16} /> Dashboard
       </button>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.03em', color: C.text, margin: 0 }}>
             Coupons
@@ -163,7 +187,7 @@ export default function AdminCouponsPage() {
           <h2 style={{ fontSize: '1rem', fontWeight: 700, color: C.text, margin: '0 0 1.25rem' }}>
             Create New Coupon
           </h2>
-          <form onSubmit={handleCreate} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <form onSubmit={handleCreate} className="coupon-form-grid">
             <div>
               <label style={labelStyle}>Coupon Code</label>
               <input
@@ -190,6 +214,7 @@ export default function AdminCouponsPage() {
               <input
                 type="date"
                 value={form.expiresAt}
+                min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
                 onChange={e => setForm({ ...form, expiresAt: e.target.value })}
                 style={inputStyle}
               />
@@ -237,8 +262,7 @@ export default function AdminCouponsPage() {
       {/* Coupons Table */}
       <div style={{ background: C.card, borderRadius: '18px', border: `1px solid ${C.border}`, overflow: 'hidden' }}>
         {/* Header */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 80px 120px 100px 80px 80px',
+        <div className="coupon-header-row" style={{
           padding: '0.75rem 1rem', background: C.bg, borderBottom: `1px solid ${C.border}`,
         }}>
           {['Code', 'Discount', 'Expiry', 'Uses', 'Status', 'Actions'].map(h => (
@@ -260,27 +284,39 @@ export default function AdminCouponsPage() {
             const expired = new Date() > new Date(coupon.expiresAt);
             const exhausted = coupon.usedCount >= coupon.maxUses;
             return (
-              <div key={coupon._id} style={{
-                display: 'grid', gridTemplateColumns: '1fr 80px 120px 100px 80px 80px',
+              <div key={coupon._id} className="coupon-data-row" style={{
                 padding: '0.875rem 1rem', borderBottom: `1px solid ${C.bg}`,
                 alignItems: 'center',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Tag size={14} color={C.blue} />
-                  <span style={{ fontWeight: 600, fontSize: '0.9375rem', color: C.text, fontFamily: 'monospace' }}>
-                    {coupon.code}
+                <div className="coupon-field">
+                  <span className="coupon-field-label">Code</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Tag size={14} color={C.blue} />
+                    <span style={{ fontWeight: 600, fontSize: '0.9375rem', color: C.text, fontFamily: 'monospace' }}>
+                      {coupon.code}
+                    </span>
+                  </div>
+                </div>
+                <div className="coupon-field">
+                  <span className="coupon-field-label">Discount</span>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: C.blue }}>
+                    {coupon.discountPercent}%
                   </span>
                 </div>
-                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: C.blue }}>
-                  {coupon.discountPercent}%
-                </span>
-                <span style={{ fontSize: '0.8125rem', color: expired ? C.red : C.muted }}>
-                  {new Date(coupon.expiresAt).toLocaleDateString()}
-                </span>
-                <span style={{ fontSize: '0.8125rem', color: exhausted ? C.red : C.muted }}>
-                  {coupon.usedCount} / {coupon.maxUses}
-                </span>
-                <div>
+                <div className="coupon-field">
+                  <span className="coupon-field-label">Expiry</span>
+                  <span style={{ fontSize: '0.8125rem', color: expired ? C.red : C.muted }}>
+                    {new Date(coupon.expiresAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="coupon-field">
+                  <span className="coupon-field-label">Uses</span>
+                  <span style={{ fontSize: '0.8125rem', color: exhausted ? C.red : C.muted }}>
+                    {coupon.usedCount} / {coupon.maxUses}
+                  </span>
+                </div>
+                <div className="coupon-field">
+                  <span className="coupon-field-label">Status</span>
                   <button
                     onClick={() => handleToggleActive(coupon)}
                     style={{
@@ -294,7 +330,8 @@ export default function AdminCouponsPage() {
                     {coupon.isActive ? 'Active' : 'Inactive'}
                   </button>
                 </div>
-                <div>
+                <div className="coupon-field">
+                  <span className="coupon-field-label">Actions</span>
                   <button
                     onClick={() => handleDelete(coupon._id)}
                     style={{
