@@ -44,6 +44,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [wishlistCount, setWishlistCount] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [hoveredIcon, setHoveredIcon] = useState(null);
   const [hoveredLink, setHoveredLink] = useState(null);
@@ -70,6 +71,33 @@ export default function Navbar() {
       cancelled = true;
       window.removeEventListener('storage', updateCartCount);
       window.removeEventListener('cart-updated', updateCartCount);
+    };
+  }, [status]);
+
+  // Read wishlist count (DB-backed when signed in, localStorage for guests)
+  useEffect(() => {
+    if (status === 'loading') return;
+    let cancelled = false;
+    async function updateWishlistCount() {
+      if (status === 'authenticated') {
+        try {
+          const res = await fetch('/api/wishlist');
+          const data = await res.json();
+          if (!cancelled && res.ok) setWishlistCount((data.wishlist || []).length);
+        } catch {}
+      } else if (!cancelled) {
+        setWishlistCount(getGuestWishlist().length);
+      }
+    }
+
+    updateWishlistCount();
+
+    window.addEventListener('storage', updateWishlistCount);
+    window.addEventListener('wishlist-updated', updateWishlistCount);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('storage', updateWishlistCount);
+      window.removeEventListener('wishlist-updated', updateWishlistCount);
     };
   }, [status]);
 
@@ -107,7 +135,7 @@ export default function Navbar() {
       if (welcome) {
         sessionStorage.removeItem('techmart-welcome');
         const firstName = session.user.name.split(' ')[0];
-        showToast(welcome === 'new' ? `Welcome, ${firstName}!` : `Welcome back, ${firstName}!`, 'success');
+        showToast(welcome === 'new' ? `Welcome, ${firstName}!` : `Welcome back, ${firstName}!`, 'welcome');
       }
     }
   }, [status, session]);
@@ -364,12 +392,38 @@ export default function Navbar() {
                 background: hoveredIcon === 'wishlist' ? 'rgba(0, 0, 0, 0.05)' : 'transparent',
                 color: C.text,
                 textDecoration: 'none',
+                position: 'relative',
                 transition: 'all 0.25s ease',
               }}
               title="Wishlist"
-              aria-label="Wishlist"
+              aria-label={`Wishlist${wishlistCount > 0 ? `, ${wishlistCount} item${wishlistCount === 1 ? '' : 's'}` : ''}`}
             >
               <Heart size={17} strokeWidth={1.6} />
+              {wishlistCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '1px',
+                    right: '1px',
+                    minWidth: '15px',
+                    height: '15px',
+                    borderRadius: '8px',
+                    background: C.red,
+                    color: '#ffffff',
+                    fontSize: '0.5625rem',
+                    fontWeight: 700,
+                    fontFamily: FONT_FAMILY,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 3px',
+                    lineHeight: 1,
+                    boxShadow: '0 1px 4px rgba(255,69,58,0.4)',
+                  }}
+                >
+                  {wishlistCount > 99 ? '99+' : wishlistCount}
+                </span>
+              )}
             </Link>
 
             {/* Cart */}
@@ -769,6 +823,31 @@ export default function Navbar() {
                     }}
                   >
                     {cartCount > 99 ? '99+' : cartCount}
+                  </span>
+                )}
+                {tab.label === 'Wishlist' && wishlistCount > 0 && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '-4px',
+                      right: '-8px',
+                      minWidth: '16px',
+                      height: '16px',
+                      borderRadius: '8px',
+                      background: C.red,
+                      color: '#ffffff',
+                      fontSize: '0.5625rem',
+                      fontWeight: 700,
+                      fontFamily: FONT_FAMILY,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0 3px',
+                      lineHeight: 1,
+                      boxShadow: '0 1px 4px rgba(255,69,58,0.4)',
+                    }}
+                  >
+                    {wishlistCount > 99 ? '99+' : wishlistCount}
                   </span>
                 )}
               </span>

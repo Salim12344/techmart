@@ -270,6 +270,7 @@ function ProductsContent() {
         else next.add(productId);
         return next;
       });
+      window.dispatchEvent(new Event('wishlist-updated'));
       showToast(isWishlisted ? 'Removed from wishlist' : 'Added to wishlist', 'success');
     } catch { showToast('Something went wrong. Please try again.'); }
   }

@@ -222,11 +222,19 @@ export default function ProductDetailPage({ params }) {
   const [hoveredAddCart, setHoveredAddCart] = useState(false);
   const [hoveredWishlist, setHoveredWishlist] = useState(false);
   const [cartItems, setCartItems] = useState([]);
-  const [cameFromCart, setCameFromCart] = useState(false);
+  const [cameFrom, setCameFrom] = useState(null);
 
   useEffect(() => {
-    setCameFromCart(new URLSearchParams(window.location.search).get('from') === 'cart');
+    setCameFrom(new URLSearchParams(window.location.search).get('from'));
   }, []);
+
+  const BACK_DESTINATIONS = {
+    cart: { href: '/cart', label: 'Back to Bag' },
+    wishlist: { href: '/wishlist', label: 'Back to Wishlist' },
+    compare: { href: '/compare', label: 'Back to Compare' },
+    orders: { href: '/orders', label: 'Back to Orders' },
+  };
+  const backDestination = BACK_DESTINATIONS[cameFrom] || { href: '/products', label: 'Back to Products' };
 
   // Review form state
   const { data: session, status: authStatus } = useSession();
@@ -576,6 +584,7 @@ export default function ProductDetailPage({ params }) {
       });
       if (res.status === 401) { showToast('Sign in to use wishlist'); return; }
       setIsWishlisted(!isWishlisted);
+      window.dispatchEvent(new Event('wishlist-updated'));
       showToast(isWishlisted ? 'Removed from wishlist' : 'Added to wishlist', 'success');
     } catch { showToast('Something went wrong. Please try again.'); }
     finally { setWishlistLoading(false); }
@@ -606,8 +615,8 @@ export default function ProductDetailPage({ params }) {
           padding: '1.5rem 2rem 0',
         }}
       >
-        <Link href={cameFromCart ? '/cart' : '/products'} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#0071e3', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 500, marginBottom: '1rem' }}>
-          <ArrowLeft size={16} /> {cameFromCart ? 'Back to Bag' : 'Back to Products'}
+        <Link href={backDestination.href} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#0071e3', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 500, marginBottom: '1rem' }}>
+          <ArrowLeft size={16} /> {backDestination.label}
         </Link>
         <div
           style={{
@@ -771,29 +780,30 @@ export default function ProductDetailPage({ params }) {
               )}
             </div>
 
-            {/* Dot pagination for multiple images on the selected color, Apple-style */}
-            {displayImages.length > 1 && (
-              <div style={{
-                display: 'flex', justifyContent: 'center', alignItems: 'center',
-                gap: '0.5rem', padding: '0 0 1.25rem',
-              }}>
-                {displayImages.map((img, i) => (
-                  <button
-                    key={img}
-                    type="button"
-                    onClick={() => { setSelectedImageIndex(i); setImageLoaded(false); }}
-                    aria-label={`Show image ${i + 1} of ${displayImages.length}`}
-                    style={{
-                      width: i === selectedImageIndex ? '8px' : '7px',
-                      height: i === selectedImageIndex ? '8px' : '7px',
-                      borderRadius: '50%', border: 'none', padding: 0, cursor: 'pointer',
-                      background: i === selectedImageIndex ? C.blue : C.inputBorder,
-                      transition: 'background 0.2s, width 0.2s, height 0.2s',
-                    }}
-                  />
-                ))}
-              </div>
-            )}
+            {/* Dot pagination for multiple images on the selected color, Apple-style.
+                Always reserves this row's height (even for single-image colors) so the
+                card doesn't grow/shrink and shift out of view when switching colors. */}
+            <div style={{
+              display: 'flex', justifyContent: 'center', alignItems: 'center',
+              gap: '0.5rem', padding: '0 0 1.25rem', height: '8px', boxSizing: 'content-box',
+              visibility: displayImages.length > 1 ? 'visible' : 'hidden',
+            }}>
+              {displayImages.map((img, i) => (
+                <button
+                  key={img}
+                  type="button"
+                  onClick={() => { setSelectedImageIndex(i); setImageLoaded(false); }}
+                  aria-label={`Show image ${i + 1} of ${displayImages.length}`}
+                  style={{
+                    width: i === selectedImageIndex ? '8px' : '7px',
+                    height: i === selectedImageIndex ? '8px' : '7px',
+                    borderRadius: '50%', border: 'none', padding: 0, cursor: 'pointer',
+                    background: i === selectedImageIndex ? C.blue : C.inputBorder,
+                    transition: 'background 0.2s, width 0.2s, height 0.2s',
+                  }}
+                />
+              ))}
+            </div>
 
             {/* Preload every image up front so switching colors/photos is instant
                 instead of showing a loading flash the first time each one is picked */}

@@ -41,6 +41,7 @@ function ToastItem({ toast, onClose }) {
     success: { bg: '#30d158', icon: '✓', label: 'Done' },
     warning: { bg: '#ff9f0a', icon: '!', label: 'Warning' },
     info:    { bg: '#0071e3', icon: 'i', label: 'Info' },
+    welcome: { bg: '#30d158', icon: '✓', label: '' },
   };
 
   const s = styles[toast.type] || styles.error;
@@ -61,8 +62,8 @@ function ToastItem({ toast, onClose }) {
       }}>
         {s.icon}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: '0.75rem', fontWeight: 600, margin: '0 0 2px', color: s.bg }}>{s.label}</p>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        {s.label && <p style={{ fontSize: '0.75rem', fontWeight: 600, margin: '0 0 2px', color: s.bg }}>{s.label}</p>}
         <p style={{ fontSize: '0.875rem', color: '#fff', margin: 0, lineHeight: 1.4 }}>{toast.message}</p>
       </div>
       <button onClick={onClose} style={{

@@ -156,6 +156,7 @@ export default function WishlistPage() {
       const data = await res.json();
       if (res.ok) {
         setWishlist(prev => prev.filter(p => p._id !== productId));
+        window.dispatchEvent(new Event('wishlist-updated'));
         showToast('Removed from wishlist', 'success');
       } else {
         showToast(data.error || 'Unable to remove item right now');
@@ -447,7 +448,7 @@ export default function WishlistPage() {
 
                     {/* Bottom row: View + Remove */}
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <Link href={`/products/${product._id}`} style={{
+                      <Link href={`/products/${product._id}?from=wishlist`} style={{
                         flex: 1,
                         display: 'flex',
                         alignItems: 'center',
