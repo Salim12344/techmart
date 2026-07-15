@@ -4,7 +4,7 @@
 import { SessionProvider, useSession, signOut } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ToastProvider } from '@/app/components/Toast';
 import { ConfirmProvider, useConfirm } from '@/app/components/ConfirmDialog';
 import { LayoutDashboard, Package, ShoppingCart, Users, ChevronRight, ChevronLeft, MessageSquare, MessageCircle, Menu, X, AlertTriangle, Tag } from 'lucide-react';
@@ -38,67 +38,79 @@ function AdminSidebar({ mobileOpen, setMobileOpen }) {
   // count as needing attention. Each badge clears itself once handled - order
   // shipped, dispute resolved, admin replies, or review approved - and also
   // refreshes instantly on an 'admin-<x>-read' event dispatched by that section's
-  // own page, instead of waiting for the next 60s poll.
-  useEffect(() => {
-    async function checkOrders() {
-      try {
-        const res = await fetch('/api/admin/orders');
-        if (res.ok) {
-          const data = await res.json();
-          const count = (data.orders || []).filter((o) => o.status === 'pending').length;
-          setBadges((prev) => ({ ...prev, Orders: count }));
-        }
-      } catch {}
-    }
-    async function checkDisputes() {
-      try {
-        const res = await fetch('/api/admin/disputes');
-        if (res.ok) {
-          const data = await res.json();
-          const count = (data.disputes || []).filter((d) => d.status === 'OPEN').length;
-          setBadges((prev) => ({ ...prev, Disputes: count }));
-        }
-      } catch {}
-    }
-    async function checkSupport() {
-      try {
-        const res = await fetch('/api/admin/support');
-        if (res.ok) {
-          const data = await res.json();
-          const count = (data.tickets || []).filter((t) => {
-            if (t.status === 'closed' || !t.messages || t.messages.length === 0) return false;
-            return t.messages[t.messages.length - 1].sender === 'user';
-          }).length;
-          setBadges((prev) => ({ ...prev, Support: count }));
-        }
-      } catch {}
-    }
+  // own page, on every admin route change, and when the tab regains focus -
+  // instead of only waiting for the next 60s poll, which could leave a badge
+  // (e.g. a brand-new customer review) stale for up to a minute.
+  const checkOrders = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/orders');
+      if (res.ok) {
+        const data = await res.json();
+        const count = (data.orders || []).filter((o) => o.status === 'pending').length;
+        setBadges((prev) => ({ ...prev, Orders: count }));
+      }
+    } catch {}
+  }, []);
+  const checkDisputes = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/disputes');
+      if (res.ok) {
+        const data = await res.json();
+        const count = (data.disputes || []).filter((d) => d.status === 'OPEN').length;
+        setBadges((prev) => ({ ...prev, Disputes: count }));
+      }
+    } catch {}
+  }, []);
+  const checkSupport = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/support');
+      if (res.ok) {
+        const data = await res.json();
+        const count = (data.tickets || []).filter((t) => {
+          if (t.status === 'closed' || !t.messages || t.messages.length === 0) return false;
+          return t.messages[t.messages.length - 1].sender === 'user';
+        }).length;
+        setBadges((prev) => ({ ...prev, Support: count }));
+      }
+    } catch {}
+  }, []);
+  const checkReviews = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/reviews');
+      if (res.ok) {
+        const data = await res.json();
+        const count = (data.reviews || []).filter((r) => !r.isApproved).length;
+        setBadges((prev) => ({ ...prev, Reviews: count }));
+      }
+    } catch {}
+  }, []);
 
-    async function checkReviews() {
-      try {
-        const res = await fetch('/api/admin/reviews');
-        if (res.ok) {
-          const data = await res.json();
-          const count = (data.reviews || []).filter((r) => !r.isApproved).length;
-          setBadges((prev) => ({ ...prev, Reviews: count }));
-        }
-      } catch {}
-    }
-
+  const checkAll = useCallback(() => {
     checkOrders(); checkDisputes(); checkSupport(); checkReviews();
-    const interval = setInterval(() => { checkOrders(); checkDisputes(); checkSupport(); checkReviews(); }, 60000);
+  }, [checkOrders, checkDisputes, checkSupport, checkReviews]);
+
+  useEffect(() => {
+    checkAll();
+    const interval = setInterval(checkAll, 60000);
     window.addEventListener('admin-orders-read', checkOrders);
     window.addEventListener('admin-disputes-read', checkDisputes);
     window.addEventListener('admin-support-read', checkSupport);
     window.addEventListener('admin-reviews-read', checkReviews);
+    const onVisibilityChange = () => { if (!document.hidden) checkAll(); };
+    document.addEventListener('visibilitychange', onVisibilityChange);
     return () => {
       clearInterval(interval);
       window.removeEventListener('admin-orders-read', checkOrders);
       window.removeEventListener('admin-disputes-read', checkDisputes);
       window.removeEventListener('admin-support-read', checkSupport);
       window.removeEventListener('admin-reviews-read', checkReviews);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, []);
+  }, [checkAll, checkOrders, checkDisputes, checkSupport, checkReviews]);
+
+  // Re-check every time the admin navigates to a different page, so a badge
+  // is never more than a moment stale when they actually look at that section.
+  useEffect(() => { checkAll(); }, [pathname, checkAll]);
 
   const navItems = [
     { href: '/admin', label: 'Dashboard', icon: <LayoutDashboard size={19} strokeWidth={2.25} />, exact: true },
