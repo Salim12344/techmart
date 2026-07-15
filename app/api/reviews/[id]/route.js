@@ -47,16 +47,44 @@ export async function PATCH(req, { params }) {
     }
 
     const { id } = await params;
-    const { action } = await req.json();
-    if (action !== 'like') {
-      return Response.json({ error: 'Unsupported action' }, { status: 400 });
-    }
+    const body = await req.json();
+    const { action } = body;
 
     await connectDB();
     const review = await Review.findById(id);
     if (!review) {
       return Response.json({ error: 'Review not found' }, { status: 404 });
     }
+
+    if (action === 'edit') {
+      if (review.userId.toString() !== session.user.id) {
+        return Response.json({ error: 'You can only edit your own review' }, { status: 403 });
+      }
+      const { rating, comment } = body;
+      if (!rating || rating < 1 || rating > 5) {
+        return Response.json({ error: 'Rating must be between 1 and 5' }, { status: 400 });
+      }
+      review.rating = rating;
+      review.comment = comment;
+      // Edited content hasn't been moderated yet - send it back through approval.
+      review.isApproved = false;
+      review.updatedAt = new Date();
+      await review.save();
+
+      const remaining = await Review.find({ productId: review.productId, isApproved: true });
+      const reviewCount = remaining.length;
+      const averageRating = reviewCount > 0
+        ? remaining.reduce((sum, r) => sum + r.rating, 0) / reviewCount
+        : 0;
+      await Product.findByIdAndUpdate(review.productId, { averageRating: Math.round(averageRating * 10) / 10, reviewCount });
+
+      return Response.json({ review });
+    }
+
+    if (action !== 'like') {
+      return Response.json({ error: 'Unsupported action' }, { status: 400 });
+    }
+
     if (review.userId.toString() === session.user.id) {
       return Response.json({ error: "You can't like your own review" }, { status: 400 });
     }

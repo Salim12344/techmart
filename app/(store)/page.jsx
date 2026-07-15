@@ -177,8 +177,11 @@ export default function HomePage() {
       .catch(() => {});
   }, []);
 
-  const featured = products.slice(0, 8);
-  const categories = [...new Set(products.map((p) => p.category).filter(Boolean))];
+  // iPhone is the flagship line - keep it leading both the featured strip and
+  // the category list, ahead of whatever order the API happens to return.
+  const iphoneFirst = (a, b) => (a === 'iPhone' ? 0 : 1) - (b === 'iPhone' ? 0 : 1);
+  const featured = [...products].sort((a, b) => iphoneFirst(a.category, b.category)).slice(0, 8);
+  const categories = [...new Set(products.map((p) => p.category).filter(Boolean))].sort(iphoneFirst);
 
   const categoryCounts = {};
   products.forEach((p) => {

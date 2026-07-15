@@ -244,6 +244,10 @@ export default function ProductDetailPage({ params }) {
   const [deliveredOrders, setDeliveredOrders] = useState([]);
   const [ordersLoaded, setOrdersLoaded] = useState(false);
   const [hoveredSubmit, setHoveredSubmit] = useState(false);
+  const [editingReviewId, setEditingReviewId] = useState(null);
+  const [editRating, setEditRating] = useState(0);
+  const [editComment, setEditComment] = useState('');
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -451,6 +455,43 @@ export default function ProductDetailPage({ params }) {
       showToast('Review deleted', 'success');
     } catch {
       showToast('Unable to delete review right now', 'error');
+    }
+  }
+
+  function startEditReview(review) {
+    setEditingReviewId(review._id);
+    setEditRating(review.rating);
+    setEditComment(review.comment || '');
+  }
+
+  function cancelEditReview() {
+    setEditingReviewId(null);
+  }
+
+  async function handleSaveEditReview(reviewId) {
+    if (editRating === 0) {
+      showToast('Please select a rating', 'error');
+      return;
+    }
+    setEditSubmitting(true);
+    try {
+      const res = await fetch(`/api/reviews/${reviewId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'edit', rating: editRating, comment: editComment }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Unable to update review right now', 'error');
+        return;
+      }
+      setReviews((prev) => prev.map((r) => (r._id === reviewId ? { ...r, rating: data.review.rating, comment: data.review.comment, isApproved: data.review.isApproved } : r)));
+      setEditingReviewId(null);
+      showToast('Review updated - awaiting re-approval', 'success');
+    } catch {
+      showToast('Unable to update review right now', 'error');
+    } finally {
+      setEditSubmitting(false);
     }
   }
 
@@ -1593,48 +1634,105 @@ export default function ProductDetailPage({ params }) {
                       Pending approval
                     </span>
                   )}
-                  {review.comment && (
-                    <p
-                      style={{
-                        fontSize: '0.9375rem',
-                        color: C.text,
-                        lineHeight: 1.65,
-                        margin: '0.5rem 0 0',
-                      }}
-                    >
-                      {review.comment}
-                    </p>
+                  {editingReviewId === review._id ? (
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <StarRating rating={editRating} size={22} interactive onChange={setEditRating} />
+                      <textarea
+                        value={editComment}
+                        onChange={(e) => setEditComment(e.target.value)}
+                        rows={3}
+                        style={{
+                          width: '100%', marginTop: '0.75rem', padding: '0.75rem 0.875rem',
+                          borderRadius: '12px', border: `1px solid ${C.inputBorder}`,
+                          fontSize: '0.9375rem', fontFamily: 'inherit', color: C.text,
+                          background: '#fafafa', resize: 'vertical', outline: 'none', boxSizing: 'border-box',
+                        }}
+                      />
+                      <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem' }}>
+                        <button
+                          onClick={() => handleSaveEditReview(review._id)}
+                          disabled={editSubmitting || editRating === 0}
+                          style={{
+                            padding: '0.5rem 1.25rem', borderRadius: '980px', border: 'none',
+                            fontSize: '0.8125rem', fontWeight: 600, fontFamily: 'inherit',
+                            cursor: editSubmitting || editRating === 0 ? 'not-allowed' : 'pointer',
+                            background: editSubmitting || editRating === 0 ? '#e8e8ed' : C.blue,
+                            color: editSubmitting || editRating === 0 ? C.muted : '#ffffff',
+                          }}
+                        >
+                          {editSubmitting ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          onClick={cancelEditReview}
+                          disabled={editSubmitting}
+                          style={{
+                            background: 'none', border: 'none', padding: '0.5rem 0.25rem',
+                            color: C.muted, fontSize: '0.8125rem', fontWeight: 500,
+                            cursor: 'pointer', fontFamily: 'inherit',
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {review.comment && (
+                        <p
+                          style={{
+                            fontSize: '0.9375rem',
+                            color: C.text,
+                            lineHeight: 1.65,
+                            margin: '0.5rem 0 0',
+                          }}
+                        >
+                          {review.comment}
+                        </p>
+                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.875rem' }}>
+                        {review.userId?._id === session?.user?.id ? (
+                          <>
+                            <button
+                              onClick={() => startEditReview(review)}
+                              style={{
+                                background: 'none', border: 'none', padding: 0,
+                                color: C.blue, fontSize: '0.8125rem', fontWeight: 500,
+                                cursor: 'pointer', fontFamily: 'inherit',
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteReview(review._id)}
+                              style={{
+                                background: 'none', border: 'none', padding: 0,
+                                color: C.red, fontSize: '0.8125rem', fontWeight: 500,
+                                cursor: 'pointer', fontFamily: 'inherit',
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => handleLikeReview(review._id)}
+                            disabled={!session?.user}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: '0.375rem',
+                              background: 'none', border: 'none', padding: 0,
+                              color: (review.likes || []).includes(session?.user?.id) ? C.blue : C.muted,
+                              fontSize: '0.8125rem', fontWeight: 500,
+                              cursor: session?.user ? 'pointer' : 'default',
+                              fontFamily: 'inherit',
+                            }}
+                          >
+                            <ThumbsUp size={14} fill={(review.likes || []).includes(session?.user?.id) ? C.blue : 'none'} />
+                            {(review.likes || []).length > 0 ? review.likes.length : ''} Helpful
+                          </button>
+                        )}
+                      </div>
+                    </>
                   )}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.875rem' }}>
-                    {review.userId?._id === session?.user?.id ? (
-                      <button
-                        onClick={() => handleDeleteReview(review._id)}
-                        style={{
-                          background: 'none', border: 'none', padding: 0,
-                          color: C.red, fontSize: '0.8125rem', fontWeight: 500,
-                          cursor: 'pointer', fontFamily: 'inherit',
-                        }}
-                      >
-                        Delete
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleLikeReview(review._id)}
-                        disabled={!session?.user}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '0.375rem',
-                          background: 'none', border: 'none', padding: 0,
-                          color: (review.likes || []).includes(session?.user?.id) ? C.blue : C.muted,
-                          fontSize: '0.8125rem', fontWeight: 500,
-                          cursor: session?.user ? 'pointer' : 'default',
-                          fontFamily: 'inherit',
-                        }}
-                      >
-                        <ThumbsUp size={14} fill={(review.likes || []).includes(session?.user?.id) ? C.blue : 'none'} />
-                        {(review.likes || []).length > 0 ? review.likes.length : ''} Helpful
-                      </button>
-                    )}
-                  </div>
                 </div>
               ))}
             </div>

@@ -430,7 +430,14 @@ function ProductsContent() {
         break;
       case 'newest':
       default:
-        result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        // iPhone is the flagship line - keep it leading the default listing,
+        // then fall back to newest-first within and across the rest.
+        result.sort((a, b) => {
+          const aIsIphone = a.category === 'iPhone' ? 0 : 1;
+          const bIsIphone = b.category === 'iPhone' ? 0 : 1;
+          if (aIsIphone !== bIsIphone) return aIsIphone - bIsIphone;
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        });
         break;
     }
 
