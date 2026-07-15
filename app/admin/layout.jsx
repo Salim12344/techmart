@@ -15,7 +15,7 @@ function AdminSidebar({ mobileOpen, setMobileOpen }) {
   const confirmAction = useConfirm();
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [badges, setBadges] = useState({ Orders: 0, Disputes: 0, Support: 0 });
+  const [badges, setBadges] = useState({ Orders: 0, Disputes: 0, Support: 0, Reviews: 0 });
 
   // The desktop "collapse to icons" toggle has no meaning on the mobile
   // drawer - it should always show full labels and the sign-out button there.
@@ -33,11 +33,12 @@ function AdminSidebar({ mobileOpen, setMobileOpen }) {
     setMobileOpen(false);
   }, [pathname]);
 
-  // Orders awaiting shipment, disputes still open, and support tickets a customer
-  // messaged last (admin hasn't replied yet) all count as needing attention. Each
-  // badge clears itself once handled - order shipped, dispute resolved, or admin
-  // replies - and also refreshes instantly on an 'admin-<x>-read' event dispatched
-  // by that section's own page, instead of waiting for the next 60s poll.
+  // Orders awaiting shipment, disputes still open, support tickets a customer
+  // messaged last (admin hasn't replied yet), and reviews awaiting moderation all
+  // count as needing attention. Each badge clears itself once handled - order
+  // shipped, dispute resolved, admin replies, or review approved - and also
+  // refreshes instantly on an 'admin-<x>-read' event dispatched by that section's
+  // own page, instead of waiting for the next 60s poll.
   useEffect(() => {
     async function checkOrders() {
       try {
@@ -73,16 +74,29 @@ function AdminSidebar({ mobileOpen, setMobileOpen }) {
       } catch {}
     }
 
-    checkOrders(); checkDisputes(); checkSupport();
-    const interval = setInterval(() => { checkOrders(); checkDisputes(); checkSupport(); }, 60000);
+    async function checkReviews() {
+      try {
+        const res = await fetch('/api/admin/reviews');
+        if (res.ok) {
+          const data = await res.json();
+          const count = (data.reviews || []).filter((r) => !r.isApproved).length;
+          setBadges((prev) => ({ ...prev, Reviews: count }));
+        }
+      } catch {}
+    }
+
+    checkOrders(); checkDisputes(); checkSupport(); checkReviews();
+    const interval = setInterval(() => { checkOrders(); checkDisputes(); checkSupport(); checkReviews(); }, 60000);
     window.addEventListener('admin-orders-read', checkOrders);
     window.addEventListener('admin-disputes-read', checkDisputes);
     window.addEventListener('admin-support-read', checkSupport);
+    window.addEventListener('admin-reviews-read', checkReviews);
     return () => {
       clearInterval(interval);
       window.removeEventListener('admin-orders-read', checkOrders);
       window.removeEventListener('admin-disputes-read', checkDisputes);
       window.removeEventListener('admin-support-read', checkSupport);
+      window.removeEventListener('admin-reviews-read', checkReviews);
     };
   }, []);
 

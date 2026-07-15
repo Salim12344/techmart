@@ -52,6 +52,7 @@ export default function AdminReviewsPage() {
       if (res.ok) {
         const data = await res.json();
         setReviews((prev) => prev.map((r) => (r._id === reviewId ? { ...r, isApproved: data.review.isApproved } : r)));
+        window.dispatchEvent(new Event('admin-reviews-read'));
         showToast(isApproved ? 'Review approved' : 'Review unapproved', 'success');
       } else {
         const data = await res.json();
