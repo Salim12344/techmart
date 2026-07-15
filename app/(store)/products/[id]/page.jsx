@@ -251,12 +251,28 @@ export default function ProductDetailPage({ params }) {
 
   useEffect(() => {
     let cancelled = false;
+    async function fetchReviews(retrying = false) {
+      // Reviews are secondary to the product itself - a failed/slow fetch here
+      // (bad response, network hiccup) should never block the page from rendering
+      // or knock out the product data that already loaded successfully. Most
+      // failures here are transient, so retry once before giving up silently.
+      try {
+        const revRes = await fetch(`/api/reviews?productId=${id}`);
+        if (!revRes.ok) {
+          if (!retrying) return fetchReviews(true);
+          if (!cancelled) setReviews([]);
+          return;
+        }
+        const revData = await revRes.json();
+        if (!cancelled) setReviews(revData.reviews || []);
+      } catch {
+        if (!retrying) return fetchReviews(true);
+        if (!cancelled) setReviews([]);
+      }
+    }
     async function fetchData() {
       try {
-        const [prodRes, revRes] = await Promise.all([
-          fetch(`/api/products/${id}`),
-          fetch(`/api/reviews?productId=${id}`),
-        ]);
+        const prodRes = await fetch(`/api/products/${id}`);
 
         if (!prodRes.ok) {
           showToast('Product not found', 'error');
@@ -265,13 +281,10 @@ export default function ProductDetailPage({ params }) {
         }
 
         const prodData = await prodRes.json();
-        const revData = await revRes.json();
-
         if (cancelled) return;
 
         const p = prodData.product;
         setProduct(p);
-        setReviews(revData.reviews || []);
 
         if (p.colors?.length > 0) setSelectedColor(p.colors[0].name);
         if (p.storageOptions?.length > 0) setSelectedStorage(p.storageOptions[0]);
@@ -282,6 +295,7 @@ export default function ProductDetailPage({ params }) {
       }
     }
     fetchData();
+    fetchReviews();
     return () => { cancelled = true; };
   }, [id]);
 
