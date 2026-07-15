@@ -43,3 +43,4 @@ next-env.d.ts
 # local backup of product photos downloaded from Cloudinary - not source code
 /product images/
 /product images no bg/
+/second images/
